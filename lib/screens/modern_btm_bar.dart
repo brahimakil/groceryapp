@@ -1,24 +1,24 @@
-import 'package:badges/badges.dart' as custom_badge;
 import 'package:flutter/material.dart';
 import 'package:flutter_iconly/flutter_iconly.dart';
-import 'package:grocery_app/screens/categories.dart';
-import 'package:grocery_app/screens/home_screen.dart';
-import 'package:grocery_app/screens/user.dart';
-import 'package:grocery_app/widgets/text_widget.dart';
+import 'package:badges/badges.dart' as custom_badge;
 import 'package:provider/provider.dart';
-
-import '../providers/dark_theme_provider.dart';
+import '../consts/modern_theme.dart';
 import '../providers/cart_provider.dart';
+import '../widgets/modern_text_widget.dart';
+import 'categories.dart';
+import 'home_screen.dart';
+import 'user.dart';
 import 'cart/cart_screen.dart';
 
-class BottomBarScreen extends StatefulWidget {
-  const BottomBarScreen({Key? key}) : super(key: key);
+class ModernBottomBarScreen extends StatefulWidget {
+  const ModernBottomBarScreen({Key? key}) : super(key: key);
 
   @override
-  State<BottomBarScreen> createState() => _BottomBarScreenState();
+  State<ModernBottomBarScreen> createState() => _ModernBottomBarScreenState();
 }
 
-class _BottomBarScreenState extends State<BottomBarScreen> with TickerProviderStateMixin {
+class _ModernBottomBarScreenState extends State<ModernBottomBarScreen>
+    with TickerProviderStateMixin {
   int _selectedIndex = 0;
   late AnimationController _animationController;
   late Animation<double> _animation;
@@ -82,7 +82,6 @@ class _BottomBarScreenState extends State<BottomBarScreen> with TickerProviderSt
 
   @override
   Widget build(BuildContext context) {
-    final themeState = Provider.of<DarkThemeProvider>(context);
     final theme = Theme.of(context);
     final isDark = theme.brightness == Brightness.dark;
 
@@ -105,7 +104,10 @@ class _BottomBarScreenState extends State<BottomBarScreen> with TickerProviderSt
         child: SafeArea(
           child: Container(
             height: 80,
-            padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+            padding: const EdgeInsets.symmetric(
+              horizontal: ModernTheme.spaceM,
+              vertical: ModernTheme.spaceS,
+            ),
             child: Row(
               mainAxisAlignment: MainAxisAlignment.spaceAround,
               children: List.generate(_pages.length, (index) {
@@ -118,18 +120,15 @@ class _BottomBarScreenState extends State<BottomBarScreen> with TickerProviderSt
                     child: AnimatedContainer(
                       duration: const Duration(milliseconds: 300),
                       curve: Curves.easeInOut,
-                      padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 8),
+                      padding: const EdgeInsets.symmetric(
+                        horizontal: ModernTheme.spaceS,
+                        vertical: ModernTheme.spaceS,
+                      ),
                       decoration: BoxDecoration(
                         color: isSelected
-                            ? theme.primaryColor.withOpacity(0.1)
+                            ? ModernTheme.primaryColor.withOpacity(0.1)
                             : Colors.transparent,
-                        borderRadius: BorderRadius.circular(16),
-                        border: isSelected
-                            ? Border.all(
-                                color: theme.primaryColor.withOpacity(0.2),
-                                width: 1,
-                              )
-                            : null,
+                        borderRadius: BorderRadius.circular(ModernTheme.radiusMedium),
                       ),
                       child: Column(
                         mainAxisSize: MainAxisSize.min,
@@ -137,7 +136,7 @@ class _BottomBarScreenState extends State<BottomBarScreen> with TickerProviderSt
                           AnimatedScale(
                             scale: isSelected ? 1.1 : 1.0,
                             duration: const Duration(milliseconds: 300),
-                            child: _buildIcon(index, isSelected, page, theme),
+                            child: _buildIcon(index, isSelected, page),
                           ),
                           const SizedBox(height: 4),
                           AnimatedDefaultTextStyle(
@@ -146,7 +145,7 @@ class _BottomBarScreenState extends State<BottomBarScreen> with TickerProviderSt
                               fontSize: 12,
                               fontWeight: isSelected ? FontWeight.w600 : FontWeight.w500,
                               color: isSelected
-                                  ? theme.primaryColor
+                                  ? ModernTheme.primaryColor
                                   : theme.colorScheme.onSurface.withOpacity(0.6),
                             ),
                             child: Text(page['title']),
@@ -164,7 +163,7 @@ class _BottomBarScreenState extends State<BottomBarScreen> with TickerProviderSt
     );
   }
 
-  Widget _buildIcon(int index, bool isSelected, Map<String, dynamic> page, ThemeData theme) {
+  Widget _buildIcon(int index, bool isSelected, Map<String, dynamic> page) {
     if (index == 2) { // Cart tab
       return Consumer<CartProvider>(
         builder: (_, cartProvider, __) {
@@ -173,18 +172,17 @@ class _BottomBarScreenState extends State<BottomBarScreen> with TickerProviderSt
           Widget iconWidget = Icon(
             isSelected ? page['activeIcon'] : page['icon'],
             color: isSelected
-                ? theme.primaryColor
-                : theme.colorScheme.onSurface.withOpacity(0.6),
+                ? ModernTheme.primaryColor
+                : Theme.of(context).colorScheme.onSurface.withOpacity(0.6),
             size: 24,
           );
 
           if (cartItemsCount > 0) {
             return custom_badge.Badge(
               badgeStyle: custom_badge.BadgeStyle(
-                badgeColor: Colors.red.shade600,
-                borderRadius: BorderRadius.circular(12),
+                badgeColor: ModernTheme.errorColor,
+                borderRadius: BorderRadius.circular(10),
                 elevation: 0,
-                padding: const EdgeInsets.all(4),
               ),
               position: custom_badge.BadgePosition.topEnd(top: -8, end: -8),
               badgeContent: Text(
@@ -207,9 +205,9 @@ class _BottomBarScreenState extends State<BottomBarScreen> with TickerProviderSt
     return Icon(
       isSelected ? page['activeIcon'] : page['icon'],
       color: isSelected
-          ? theme.primaryColor
-          : theme.colorScheme.onSurface.withOpacity(0.6),
+          ? ModernTheme.primaryColor
+          : Theme.of(context).colorScheme.onSurface.withOpacity(0.6),
       size: 24,
     );
   }
-}
+} 

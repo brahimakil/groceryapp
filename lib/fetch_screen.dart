@@ -20,22 +20,49 @@ class FetchScreen extends StatefulWidget {
   State<FetchScreen> createState() => _FetchScreenState();
 }
 
-class _FetchScreenState extends State<FetchScreen> {
+class _FetchScreenState extends State<FetchScreen> with TickerProviderStateMixin {
   List<String> images = Constss.authImagesPaths;
   bool _isLoading = true;
+  late AnimationController _animationController;
+  late Animation<double> _fadeAnimation;
+  late Animation<double> _scaleAnimation;
   
   @override
   void initState() {
-    // images.shuffle(); // Keep commented out
+    super.initState();
+    
+    // Initialize animations
+    _animationController = AnimationController(
+      duration: const Duration(milliseconds: 2000),
+      vsync: this,
+    );
+    
+    _fadeAnimation = Tween<double>(
+      begin: 0.0,
+      end: 1.0,
+    ).animate(CurvedAnimation(
+      parent: _animationController,
+      curve: const Interval(0.0, 0.6, curve: Curves.easeIn),
+    ));
+    
+    _scaleAnimation = Tween<double>(
+      begin: 0.8,
+      end: 1.0,
+    ).animate(CurvedAnimation(
+      parent: _animationController,
+      curve: const Interval(0.2, 0.8, curve: Curves.elasticOut),
+    ));
+    
+    _animationController.forward();
     
     // Increase timeout to MILLISECONDS (not microseconds)
-    Future.delayed(const Duration(milliseconds: 500), () async {
+    Future.delayed(const Duration(milliseconds: 1500), () async {
       try {
         // Get all necessary providers
         final productsProvider = Provider.of<ProductsProvider>(context, listen: false);
         final cartProvider = Provider.of<CartProvider>(context, listen: false);
         final wishlistProvider = Provider.of<WishlistProvider>(context, listen: false);
-        final categoriesProvider = Provider.of<CategoriesProvider>(context, listen: false); // Get CategoriesProvider
+        final categoriesProvider = Provider.of<CategoriesProvider>(context, listen: false);
         final User? user = authInstance.currentUser;
         
         // Wrap all data fetching in try-catch
@@ -43,7 +70,7 @@ class _FetchScreenState extends State<FetchScreen> {
            // Fetch products and categories concurrently
           await Future.wait([
              productsProvider.fetchProducts(),
-             categoriesProvider.fetchCategories(), // Fetch categories
+             categoriesProvider.fetchCategories(),
           ]);
 
           // Fetch user-specific data if logged in
@@ -66,9 +93,15 @@ class _FetchScreenState extends State<FetchScreen> {
         
         // Navigate away after attempting fetches
         if (mounted) {
-          Navigator.of(context).pushReplacement(MaterialPageRoute(
-            builder: (ctx) => const BottomBarScreen(),
-          ));
+          Navigator.of(context).pushReplacement(
+            PageRouteBuilder(
+              pageBuilder: (context, animation, secondaryAnimation) => const BottomBarScreen(),
+              transitionsBuilder: (context, animation, secondaryAnimation, child) {
+                return FadeTransition(opacity: animation, child: child);
+              },
+              transitionDuration: const Duration(milliseconds: 500),
+            ),
+          );
         }
       } catch (e) {
         print("Error in FetchScreen initialization: $e");
@@ -80,51 +113,143 @@ class _FetchScreenState extends State<FetchScreen> {
         }
       }
     });
-    super.initState();
+  }
+
+  @override
+  void dispose() {
+    _animationController.dispose();
+    super.dispose();
   }
 
   @override
   Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+    final isDark = theme.brightness == Brightness.dark;
+    
     return Scaffold(
-      body: Stack(
-        children: [
-          // Use a solid color background instead of images
-          Container(
-            color: Colors.white,
-            width: double.infinity,
-            height: double.infinity,
-            child: Center(
+      body: Container(
+        decoration: BoxDecoration(
+          gradient: LinearGradient(
+            begin: Alignment.topCenter,
+            end: Alignment.bottomCenter,
+            colors: isDark
+                ? [
+                    const Color(0xFF0F0F0F),
+                    const Color(0xFF1A1A1A),
+                  ]
+                : [
+                    Colors.white,
+                    Colors.grey.shade50,
+                  ],
+          ),
+        ),
+        child: Center(
+          child: FadeTransition(
+            opacity: _fadeAnimation,
+            child: ScaleTransition(
+              scale: _scaleAnimation,
               child: Column(
                 mainAxisAlignment: MainAxisAlignment.center,
                 children: [
-                  Text(
-                    "Grocery App",
-                    style: TextStyle(
-                      fontSize: 26, 
-                      fontWeight: FontWeight.bold,
-                      color: Colors.green.shade700
+                  // App Logo/Icon
+                  Container(
+                    width: 120,
+                    height: 120,
+                    decoration: BoxDecoration(
+                      gradient: LinearGradient(
+                        colors: [
+                          theme.primaryColor,
+                          theme.primaryColor.withOpacity(0.8),
+                        ],
+                      ),
+                      borderRadius: BorderRadius.circular(30),
+                      boxShadow: [
+                        BoxShadow(
+                          color: theme.primaryColor.withOpacity(0.3),
+                          blurRadius: 20,
+                          offset: const Offset(0, 10),
+                        ),
+                      ],
+                    ),
+                    child: const Icon(
+                      Icons.shopping_bag_outlined,
+                      size: 60,
+                      color: Colors.white,
                     ),
                   ),
-                  const SizedBox(height: 20),
+                  
+                  const SizedBox(height: 32),
+                  
+                  // App Title
+                  ShaderMask(
+                    shaderCallback: (bounds) => LinearGradient(
+                      colors: [
+                        theme.primaryColor,
+                        theme.primaryColor.withOpacity(0.8),
+                      ],
+                    ).createShader(bounds),
+                    child: Text(
+                      "Fresh Market",
+                      style: TextStyle(
+                        fontSize: 32,
+                        fontWeight: FontWeight.bold,
+                        color: Colors.white,
+                        letterSpacing: 1.2,
+                      ),
+                    ),
+                  ),
+                  
+                  const SizedBox(height: 16),
+                  
+                  // Subtitle
                   Text(
-                    "Loading your shopping experience...",
+                    "Your premium grocery experience",
                     style: TextStyle(
                       fontSize: 16,
-                      color: Colors.grey.shade700
+                      color: isDark ? Colors.grey.shade300 : Colors.grey.shade600,
+                      fontWeight: FontWeight.w500,
+                    ),
+                  ),
+                  
+                  const SizedBox(height: 48),
+                  
+                  // Modern Loading Indicator
+                  Container(
+                    padding: const EdgeInsets.all(20),
+                    decoration: BoxDecoration(
+                      color: theme.cardColor,
+                      borderRadius: BorderRadius.circular(20),
+                      boxShadow: [
+                        BoxShadow(
+                          color: Colors.black.withOpacity(isDark ? 0.3 : 0.1),
+                          blurRadius: 20,
+                          offset: const Offset(0, 5),
+                        ),
+                      ],
+                    ),
+                    child: Column(
+                      children: [
+                        SpinKitThreeBounce(
+                          color: theme.primaryColor,
+                          size: 24.0,
+                        ),
+                        const SizedBox(height: 16),
+                        Text(
+                          "Loading your fresh groceries...",
+                          style: TextStyle(
+                            fontSize: 14,
+                            color: isDark ? Colors.grey.shade300 : Colors.grey.shade600,
+                            fontWeight: FontWeight.w500,
+                          ),
+                        ),
+                      ],
                     ),
                   ),
                 ],
               ),
             ),
           ),
-          // Show a loading spinner
-          Center(
-            child: SpinKitFadingFour(
-              color: Colors.green.shade700,
-              size: 50.0,
-            ),
-          ),
-        ],
+        ),
       ),
     );
   }

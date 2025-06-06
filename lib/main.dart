@@ -30,6 +30,9 @@ import 'firebase_options.dart';
 import 'package:grocery_app/providers/categories_provider.dart';
 import 'providers/auth_provider.dart';
 import 'package:grocery_app/providers/meal_suggestions_provider.dart';
+import 'package:grocery_app/providers/notification_provider.dart';
+import 'package:grocery_app/inner_screens/search_screen.dart';
+import 'package:grocery_app/screens/notifications/notifications_screen.dart';
 
 Future<void> main() async {
   WidgetsFlutterBinding.ensureInitialized();
@@ -77,24 +80,27 @@ class _MyAppState extends State<MyApp> {
   }
 
   final Future<FirebaseApp> _firebaseInitialization = Firebase.initializeApp();
+  
   @override
   Widget build(BuildContext context) {
     return FutureBuilder(
         future: _firebaseInitialization,
         builder: (context, snapshot) {
           if (snapshot.connectionState == ConnectionState.waiting) {
-            return const MaterialApp(
+            return MaterialApp(
               debugShowCheckedModeBanner: false,
-              home: Scaffold(
+              theme: _buildModernTheme(false),
+              home: const Scaffold(
                   body: Center(
                 child: CircularProgressIndicator(),
               )),
             );
           } else if (snapshot.hasError) {
             log("Firebase init error: ${snapshot.error}");
-            return const MaterialApp(
+            return MaterialApp(
               debugShowCheckedModeBanner: false,
-              home: Scaffold(
+              theme: _buildModernTheme(false),
+              home: const Scaffold(
                   body: Center(
                 child: Text('An error occurred initializing Firebase'),
               )),
@@ -127,13 +133,16 @@ class _MyAppState extends State<MyApp> {
               ChangeNotifierProvider(
                 create: (_) => MealSuggestionsProvider(),
               ),
+              ChangeNotifierProvider(
+                create: (_) => NotificationProvider(),
+              ),
             ],
             child: Consumer<DarkThemeProvider>(
                 builder: (context, themeProvider, child) {
               return MaterialApp(
                   debugShowCheckedModeBanner: false,
                   title: 'Grocery App',
-                  theme: Styles.themeData(themeProvider.getDarkTheme, context),
+                  theme: _buildModernTheme(themeProvider.getDarkTheme),
                   home: const FetchScreen(),
                   routes: {
                     OnSaleScreen.routeName: (ctx) => const OnSaleScreen(),
@@ -148,9 +157,100 @@ class _MyAppState extends State<MyApp> {
                     ForgetPasswordScreen.routeName: (ctx) =>
                         const ForgetPasswordScreen(),
                     CategoryScreen.routeName: (ctx) => const CategoryScreen(),
+                    SearchScreen.routeName: (ctx) => const SearchScreen(),
+                    NotificationsScreen.routeName: (ctx) => const NotificationsScreen(),
                   });
             }),
           );
         });
+  }
+
+  ThemeData _buildModernTheme(bool isDark) {
+    const primaryColor = Color(0xFF6366F1); // Modern indigo
+    const secondaryColor = Color(0xFF10B981); // Modern emerald
+    
+    return ThemeData(
+      useMaterial3: true,
+      brightness: isDark ? Brightness.dark : Brightness.light,
+      primaryColor: primaryColor,
+      scaffoldBackgroundColor: isDark ? const Color(0xFF0F0F0F) : const Color(0xFFFFFFFF),
+      
+      colorScheme: ColorScheme.fromSeed(
+        seedColor: primaryColor,
+        brightness: isDark ? Brightness.dark : Brightness.light,
+        primary: primaryColor,
+        secondary: secondaryColor,
+        surface: isDark ? const Color(0xFF121212) : const Color(0xFFFAFAFA),
+        background: isDark ? const Color(0xFF0F0F0F) : const Color(0xFFFFFFFF),
+      ),
+      
+      appBarTheme: AppBarTheme(
+        elevation: 0,
+        backgroundColor: isDark ? const Color(0xFF0F0F0F) : const Color(0xFFFFFFFF),
+        foregroundColor: isDark ? Colors.white : const Color(0xFF1F2937),
+        titleTextStyle: TextStyle(
+          color: isDark ? Colors.white : const Color(0xFF1F2937),
+          fontSize: 20,
+          fontWeight: FontWeight.w600,
+        ),
+      ),
+      
+      cardTheme: CardTheme(
+        elevation: 0,
+        color: isDark ? const Color(0xFF121212) : const Color(0xFFFAFAFA),
+        shape: RoundedRectangleBorder(
+          borderRadius: BorderRadius.circular(16),
+          side: BorderSide(
+            color: isDark ? Colors.grey.shade800 : Colors.grey.shade200,
+          ),
+        ),
+      ),
+      
+      elevatedButtonTheme: ElevatedButtonThemeData(
+        style: ElevatedButton.styleFrom(
+          elevation: 0,
+          backgroundColor: primaryColor,
+          foregroundColor: Colors.white,
+          shape: RoundedRectangleBorder(
+            borderRadius: BorderRadius.circular(12),
+          ),
+          padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 16),
+        ),
+      ),
+      
+      textTheme: TextTheme(
+        displayLarge: TextStyle(
+          fontSize: 32,
+          fontWeight: FontWeight.bold,
+          color: isDark ? Colors.white : const Color(0xFF1F2937),
+        ),
+        headlineLarge: TextStyle(
+          fontSize: 24,
+          fontWeight: FontWeight.w600,
+          color: isDark ? Colors.white : const Color(0xFF1F2937),
+        ),
+        titleLarge: TextStyle(
+          fontSize: 18,
+          fontWeight: FontWeight.w600,
+          color: isDark ? Colors.white : const Color(0xFF1F2937),
+        ),
+        bodyLarge: TextStyle(
+          fontSize: 16,
+          color: isDark ? Colors.white : const Color(0xFF1F2937),
+        ),
+        bodyMedium: TextStyle(
+          fontSize: 14,
+          color: isDark ? Colors.grey.shade300 : const Color(0xFF6B7280),
+        ),
+      ),
+      
+      bottomNavigationBarTheme: BottomNavigationBarThemeData(
+        backgroundColor: isDark ? const Color(0xFF0F0F0F) : const Color(0xFFFFFFFF),
+        selectedItemColor: primaryColor,
+        unselectedItemColor: isDark ? Colors.grey.shade400 : const Color(0xFF6B7280),
+        type: BottomNavigationBarType.fixed,
+        elevation: 0,
+      ),
+    );
   }
 }
