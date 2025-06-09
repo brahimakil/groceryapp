@@ -28,6 +28,7 @@ class CartScreen extends StatefulWidget {
 class _CartScreenState extends State<CartScreen> {
   bool _isMealSuggestionsLoading = false;
   bool _showMealSuggestions = false;
+  Map<String, bool> _expandedDescriptions = {};
   
   @override
   void initState() {
@@ -287,8 +288,11 @@ class _CartScreenState extends State<CartScreen> {
   }
   
   Widget _buildRecipeCard(MealSuggestion suggestion, CartProvider cartProvider) {
+    final suggestionKey = suggestion.title; // Use title as unique key
+    final isExpanded = _expandedDescriptions[suggestionKey] ?? false;
+    
     return Container(
-      width: 280,
+      width: 300, // Increased width slightly
       margin: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
       decoration: BoxDecoration(
         color: Theme.of(context).cardColor,
@@ -316,82 +320,155 @@ class _CartScreenState extends State<CartScreen> {
                     fontSize: 16,
                     fontWeight: FontWeight.bold,
                   ),
-                  maxLines: 1,
-                  overflow: TextOverflow.ellipsis,
-                ),
-                const SizedBox(height: 4),
-                Text(
-                  suggestion.description,
-                  style: TextStyle(
-                    fontSize: 12,
-                    color: Theme.of(context).textTheme.bodySmall?.color,
-                  ),
                   maxLines: 2,
                   overflow: TextOverflow.ellipsis,
+                ),
+                const SizedBox(height: 8),
+                
+                // Expandable description
+                Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    AnimatedCrossFade(
+                      duration: const Duration(milliseconds: 300),
+                      crossFadeState: isExpanded 
+                          ? CrossFadeState.showSecond 
+                          : CrossFadeState.showFirst,
+                      firstChild: Text(
+                        suggestion.description,
+                        style: TextStyle(
+                          fontSize: 13,
+                          color: Theme.of(context).textTheme.bodySmall?.color,
+                          height: 1.3,
+                        ),
+                        maxLines: 2,
+                        overflow: TextOverflow.ellipsis,
+                      ),
+                      secondChild: Text(
+                        suggestion.description,
+                        style: TextStyle(
+                          fontSize: 13,
+                          color: Theme.of(context).textTheme.bodySmall?.color,
+                          height: 1.3,
+                        ),
+                      ),
+                    ),
+                    
+                    // Show "Read more" / "Read less" button only if text is long
+                    if (suggestion.description.length > 80)
+                      Padding(
+                        padding: const EdgeInsets.only(top: 4),
+                        child: GestureDetector(
+                          onTap: () {
+                            setState(() {
+                              _expandedDescriptions[suggestionKey] = !isExpanded;
+                            });
+                          },
+                          child: Text(
+                            isExpanded ? 'Read less' : 'Read more',
+                            style: TextStyle(
+                              fontSize: 12,
+                              color: Theme.of(context).primaryColor,
+                              fontWeight: FontWeight.w500,
+                            ),
+                          ),
+                        ),
+                      ),
+                  ],
                 ),
               ],
             ),
           ),
           const Divider(height: 1),
+          
           // Missing ingredients section
           Expanded(
-            child: ListView.builder(
+            child: Padding(
               padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
-              itemCount: suggestion.missingIngredients.length,
-              itemBuilder: (context, index) {
-                final ingredient = suggestion.missingIngredients[index];
-                final isInCart = cartProvider.getCartItems.containsKey(ingredient.id);
-                
-                return Row(
-                  children: [
-                    const Icon(Icons.add_circle_outline, size: 16),
-                    const SizedBox(width: 8),
-                    Expanded(
-                      child: Text(
-                        ingredient.title,
-                        style: TextStyle(
-                          fontSize: 14,
-                          color: isInCart ? Colors.grey : null,
-                          decoration: isInCart ? TextDecoration.lineThrough : null,
-                        ),
-                        maxLines: 1,
-                        overflow: TextOverflow.ellipsis,
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  if (suggestion.missingIngredients.isNotEmpty) ...[
+                    Text(
+                      'Missing ingredients:',
+                      style: TextStyle(
+                        fontSize: 12,
+                        fontWeight: FontWeight.w600,
+                        color: Theme.of(context).textTheme.bodyMedium?.color,
                       ),
                     ),
-                    if (!isInCart)
-                      ElevatedButton(
-                        onPressed: () async {
-                          try {
-                            await cartProvider.addProductToCart(
-                              productId: ingredient.id,
-                              quantity: 1,
-                            );
-                            ScaffoldMessenger.of(context).showSnackBar(
-                              SnackBar(
-                                content: Text('${ingredient.title} added to cart'),
-                                duration: const Duration(seconds: 2),
-                              ),
-                            );
-                          } catch (error) {
-                            GlobalMethods.errorDialog(
-                              subtitle: error.toString(),
-                              context: context,
-                            );
-                          }
-                        },
-                        style: ElevatedButton.styleFrom(
-                          padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 0),
-                          minimumSize: const Size(60, 24),
-                          tapTargetSize: MaterialTapTargetSize.shrinkWrap,
-                        ),
-                        child: const Text(
-                          'Add',
-                          style: TextStyle(fontSize: 12),
-                        ),
-                      ),
+                    const SizedBox(height: 8),
                   ],
-                );
-              },
+                  
+                  Expanded(
+                    child: ListView.builder(
+                      itemCount: suggestion.missingIngredients.length,
+                      itemBuilder: (context, index) {
+                        final ingredient = suggestion.missingIngredients[index];
+                        final isInCart = cartProvider.getCartItems.containsKey(ingredient.id);
+                        
+                        return Padding(
+                          padding: const EdgeInsets.only(bottom: 6),
+                          child: Row(
+                            children: [
+                              Icon(
+                                isInCart ? Icons.check_circle : Icons.add_circle_outline,
+                                size: 16,
+                                color: isInCart ? Colors.green : Theme.of(context).primaryColor,
+                              ),
+                              const SizedBox(width: 8),
+                              Expanded(
+                                child: Text(
+                                  ingredient.title,
+                                  style: TextStyle(
+                                    fontSize: 13,
+                                    color: isInCart ? Colors.grey : null,
+                                    decoration: isInCart ? TextDecoration.lineThrough : null,
+                                  ),
+                                  maxLines: 1,
+                                  overflow: TextOverflow.ellipsis,
+                                ),
+                              ),
+                              if (!isInCart)
+                                ElevatedButton(
+                                  onPressed: () async {
+                                    try {
+                                      await cartProvider.addProductToCart(
+                                        productId: ingredient.id,
+                                        quantity: 1,
+                                      );
+                                      ScaffoldMessenger.of(context).showSnackBar(
+                                        SnackBar(
+                                          content: Text('${ingredient.title} added to cart'),
+                                          duration: const Duration(seconds: 2),
+                                          behavior: SnackBarBehavior.floating,
+                                        ),
+                                      );
+                                    } catch (error) {
+                                      GlobalMethods.errorDialog(
+                                        subtitle: error.toString(),
+                                        context: context,
+                                      );
+                                    }
+                                  },
+                                  style: ElevatedButton.styleFrom(
+                                    padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                                    minimumSize: const Size(50, 28),
+                                    tapTargetSize: MaterialTapTargetSize.shrinkWrap,
+                                  ),
+                                  child: const Text(
+                                    'Add',
+                                    style: TextStyle(fontSize: 11),
+                                  ),
+                                ),
+                            ],
+                          ),
+                        );
+                      },
+                    ),
+                  ),
+                ],
+              ),
             ),
           ),
         ],
