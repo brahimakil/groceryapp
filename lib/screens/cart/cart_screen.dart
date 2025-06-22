@@ -135,6 +135,10 @@ class _CartScreenState extends State<CartScreen> {
                         });
                       } else {
                         // If not showing suggestions or loading, generate new ones
+                        // Always show suggestions panel first, then generate
+                        setState(() {
+                          _showMealSuggestions = true;
+                        });
                         _generateMealSuggestions();
                       }
                     },
@@ -227,7 +231,7 @@ class _CartScreenState extends State<CartScreen> {
       );
     }
     
-    // Show suggestions
+    // Show suggestions - Increased height significantly for new content
     return Container(
       padding: const EdgeInsets.symmetric(vertical: 8),
       decoration: BoxDecoration(
@@ -244,7 +248,7 @@ class _CartScreenState extends State<CartScreen> {
                 Icon(Icons.fastfood, color: Theme.of(context).primaryColor),
                 const SizedBox(width: 8),
                 const Text(
-                  "Recipe Suggestions",
+                  "AI Recipe Suggestions",
                   style: TextStyle(
                     fontSize: 18, 
                     fontWeight: FontWeight.bold
@@ -272,7 +276,7 @@ class _CartScreenState extends State<CartScreen> {
           ),
           const Divider(),
           SizedBox(
-            height: 220,
+            height: 400, // Increased from 320 to 400 for more content
             child: ListView.builder(
               scrollDirection: Axis.horizontal,
               itemCount: mealSuggestionsProvider.suggestions.length,
@@ -292,7 +296,7 @@ class _CartScreenState extends State<CartScreen> {
     final isExpanded = _expandedDescriptions[suggestionKey] ?? false;
     
     return Container(
-      width: 300, // Increased width slightly
+      width: 340, // Increased width to accommodate more content
       margin: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
       decoration: BoxDecoration(
         color: Theme.of(context).cardColor,
@@ -308,8 +312,8 @@ class _CartScreenState extends State<CartScreen> {
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          // Recipe title and description
-          Padding(
+          // Recipe title and description - Fixed height section
+          Container(
             padding: const EdgeInsets.all(12),
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
@@ -325,63 +329,233 @@ class _CartScreenState extends State<CartScreen> {
                 ),
                 const SizedBox(height: 8),
                 
-                // Expandable description
-                Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    AnimatedCrossFade(
-                      duration: const Duration(milliseconds: 300),
-                      crossFadeState: isExpanded 
-                          ? CrossFadeState.showSecond 
-                          : CrossFadeState.showFirst,
-                      firstChild: Text(
-                        suggestion.description,
-                        style: TextStyle(
-                          fontSize: 13,
-                          color: Theme.of(context).textTheme.bodySmall?.color,
-                          height: 1.3,
-                        ),
-                        maxLines: 2,
-                        overflow: TextOverflow.ellipsis,
-                      ),
-                      secondChild: Text(
-                        suggestion.description,
-                        style: TextStyle(
-                          fontSize: 13,
-                          color: Theme.of(context).textTheme.bodySmall?.color,
-                          height: 1.3,
-                        ),
-                      ),
-                    ),
-                    
-                    // Show "Read more" / "Read less" button only if text is long
-                    if (suggestion.description.length > 80)
-                      Padding(
-                        padding: const EdgeInsets.only(top: 4),
-                        child: GestureDetector(
-                          onTap: () {
-                            setState(() {
-                              _expandedDescriptions[suggestionKey] = !isExpanded;
-                            });
-                          },
-                          child: Text(
-                            isExpanded ? 'Read less' : 'Read more',
+                // Controlled expandable description with max height
+                ConstrainedBox(
+                  constraints: BoxConstraints(
+                    maxHeight: isExpanded ? 120 : 40, // Limit expansion height
+                  ),
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Flexible(
+                        child: AnimatedCrossFade(
+                          duration: const Duration(milliseconds: 300),
+                          crossFadeState: isExpanded 
+                              ? CrossFadeState.showSecond 
+                              : CrossFadeState.showFirst,
+                          firstChild: Text(
+                            suggestion.description,
                             style: TextStyle(
-                              fontSize: 12,
-                              color: Theme.of(context).primaryColor,
-                              fontWeight: FontWeight.w500,
+                              fontSize: 13,
+                              color: Theme.of(context).textTheme.bodySmall?.color,
+                              height: 1.3,
+                            ),
+                            maxLines: 2,
+                            overflow: TextOverflow.ellipsis,
+                          ),
+                          secondChild: SingleChildScrollView(
+                            child: Text(
+                              suggestion.description,
+                              style: TextStyle(
+                                fontSize: 13,
+                                color: Theme.of(context).textTheme.bodySmall?.color,
+                                height: 1.3,
+                              ),
                             ),
                           ),
                         ),
                       ),
-                  ],
+                      
+                      // Show "Read more" / "Read less" button only if text is long
+                      if (suggestion.description.length > 80)
+                        Padding(
+                          padding: const EdgeInsets.only(top: 4),
+                          child: GestureDetector(
+                            onTap: () {
+                              setState(() {
+                                _expandedDescriptions[suggestionKey] = !isExpanded;
+                              });
+                            },
+                            child: Text(
+                              isExpanded ? 'Read less' : 'Read more',
+                              style: TextStyle(
+                                fontSize: 12,
+                                color: Theme.of(context).primaryColor,
+                                fontWeight: FontWeight.w500,
+                              ),
+                            ),
+                          ),
+                        ),
+                    ],
+                  ),
                 ),
               ],
             ),
           ),
+          
+          // Nutritional Information Section
+          Container(
+            padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+            decoration: BoxDecoration(
+              color: Colors.green.withOpacity(0.05),
+              border: Border.symmetric(
+                horizontal: BorderSide(
+                  color: Colors.green.withOpacity(0.2),
+                  width: 0.5,
+                ),
+              ),
+            ),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Row(
+                  children: [
+                    Icon(Icons.local_fire_department, 
+                         size: 16, color: Colors.orange),
+                    const SizedBox(width: 4),
+                    Text(
+                      '${suggestion.nutritionalInfo.totalCalories.toInt()} cal',
+                      style: const TextStyle(
+                        fontSize: 14,
+                        fontWeight: FontWeight.bold,
+                        color: Colors.orange,
+                      ),
+                    ),
+                    const Spacer(),
+                    Icon(Icons.health_and_safety, 
+                         size: 16, color: Colors.green),
+                    const SizedBox(width: 4),
+                    Text(
+                      'Nutritious',
+                      style: TextStyle(
+                        fontSize: 12,
+                        color: Colors.green,
+                        fontWeight: FontWeight.w500,
+                      ),
+                    ),
+                  ],
+                ),
+                const SizedBox(height: 6),
+                
+                // Nutritional breakdown in compact format
+                Wrap(
+                  spacing: 8,
+                  runSpacing: 4,
+                  children: [
+                    _buildNutrientChip('Protein', suggestion.nutritionalInfo.protein, Colors.red),
+                    _buildNutrientChip('Carbs', suggestion.nutritionalInfo.carbs, Colors.blue),
+                    _buildNutrientChip('Fiber', suggestion.nutritionalInfo.fiber, Colors.green),
+                  ],
+                ),
+                
+                // Health factors
+                if (suggestion.nutritionalInfo.healthFactors.isNotEmpty) ...[
+                  const SizedBox(height: 6),
+                  Wrap(
+                    spacing: 4,
+                    runSpacing: 2,
+                    children: suggestion.nutritionalInfo.healthFactors.map((factor) =>
+                      Container(
+                        padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
+                        decoration: BoxDecoration(
+                          color: Colors.green.withOpacity(0.1),
+                          borderRadius: BorderRadius.circular(8),
+                          border: Border.all(color: Colors.green.withOpacity(0.3)),
+                        ),
+                        child: Text(
+                          factor,
+                          style: const TextStyle(
+                            fontSize: 10,
+                            color: Colors.green,
+                            fontWeight: FontWeight.w500,
+                          ),
+                        ),
+                      ),
+                    ).toList(),
+                  ),
+                ],
+              ],
+            ),
+          ),
+          
+          // Preparation Steps Section (Expandable)
+          if (suggestion.preparationSteps.isNotEmpty)
+            Theme(
+              data: Theme.of(context).copyWith(dividerColor: Colors.transparent),
+              child: ExpansionTile(
+                tilePadding: const EdgeInsets.symmetric(horizontal: 12, vertical: 4),
+                childrenPadding: const EdgeInsets.symmetric(horizontal: 12, vertical: 4),
+                leading: Icon(Icons.restaurant_menu, 
+                            size: 20, color: Theme.of(context).primaryColor),
+                title: const Text(
+                  'Preparation Steps',
+                  style: TextStyle(
+                    fontSize: 14,
+                    fontWeight: FontWeight.w600,
+                  ),
+                ),
+                children: [
+                  ConstrainedBox(
+                    constraints: const BoxConstraints(
+                      maxHeight: 100, // Reduced from 120 to 100
+                      minHeight: 50,
+                    ),
+                    child: Scrollbar(
+                      child: ListView.separated(
+                        shrinkWrap: true,
+                        padding: EdgeInsets.zero,
+                        itemCount: suggestion.preparationSteps.length,
+                        separatorBuilder: (context, index) => const SizedBox(height: 4),
+                        itemBuilder: (context, index) {
+                          return Padding(
+                            padding: const EdgeInsets.symmetric(vertical: 2),
+                            child: Row(
+                              crossAxisAlignment: CrossAxisAlignment.start,
+                              children: [
+                                Container(
+                                  width: 18, // Reduced from 20 to 18
+                                  height: 18, // Reduced from 20 to 18
+                                  decoration: BoxDecoration(
+                                    color: Theme.of(context).primaryColor,
+                                    shape: BoxShape.circle,
+                                  ),
+                                  child: Center(
+                                    child: Text(
+                                      '${index + 1}',
+                                      style: const TextStyle(
+                                        color: Colors.white,
+                                        fontSize: 10, // Reduced from 11 to 10
+                                        fontWeight: FontWeight.bold,
+                                      ),
+                                    ),
+                                  ),
+                                ),
+                                const SizedBox(width: 6), // Reduced from 8 to 6
+                                Expanded(
+                                  child: Text(
+                                    suggestion.preparationSteps[index],
+                                    style: const TextStyle(
+                                      fontSize: 12, // Reduced from 13 to 12
+                                      height: 1.2, // Reduced line height
+                                    ),
+                                    maxLines: 3, // Limit lines to prevent overflow
+                                    overflow: TextOverflow.ellipsis,
+                                  ),
+                                ),
+                              ],
+                            ),
+                          );
+                        },
+                      ),
+                    ),
+                  ),
+                ],
+              ),
+            ),
+          
           const Divider(height: 1),
           
-          // Missing ingredients section
+          // Missing ingredients section - Now has more guaranteed space
           Expanded(
             child: Padding(
               padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
@@ -392,7 +566,7 @@ class _CartScreenState extends State<CartScreen> {
                     Text(
                       'Missing ingredients:',
                       style: TextStyle(
-                        fontSize: 12,
+                        fontSize: 13, // Increased from 12 to 13
                         fontWeight: FontWeight.w600,
                         color: Theme.of(context).textTheme.bodyMedium?.color,
                       ),
@@ -400,78 +574,143 @@ class _CartScreenState extends State<CartScreen> {
                     const SizedBox(height: 8),
                   ],
                   
+                  // Use flexible height for ingredients list
                   Expanded(
-                    child: ListView.builder(
-                      itemCount: suggestion.missingIngredients.length,
-                      itemBuilder: (context, index) {
-                        final ingredient = suggestion.missingIngredients[index];
-                        final isInCart = cartProvider.getCartItems.containsKey(ingredient.id);
-                        
-                        return Padding(
-                          padding: const EdgeInsets.only(bottom: 6),
-                          child: Row(
-                            children: [
-                              Icon(
-                                isInCart ? Icons.check_circle : Icons.add_circle_outline,
-                                size: 16,
-                                color: isInCart ? Colors.green : Theme.of(context).primaryColor,
+                    child: suggestion.missingIngredients.isEmpty
+                        ? Center(
+                            child: Text(
+                              'All ingredients are in your cart! 🎉',
+                              style: TextStyle(
+                                fontSize: 13,
+                                color: Colors.green,
+                                fontWeight: FontWeight.w500,
                               ),
-                              const SizedBox(width: 8),
-                              Expanded(
-                                child: Text(
-                                  ingredient.title,
-                                  style: TextStyle(
-                                    fontSize: 13,
-                                    color: isInCart ? Colors.grey : null,
-                                    decoration: isInCart ? TextDecoration.lineThrough : null,
+                              textAlign: TextAlign.center,
+                            ),
+                          )
+                        : ListView.builder(
+                            padding: EdgeInsets.zero,
+                            itemCount: suggestion.missingIngredients.length,
+                            itemBuilder: (context, index) {
+                              final ingredient = suggestion.missingIngredients[index];
+                              final isInCart = cartProvider.getCartItems.containsKey(ingredient.id);
+                              
+                              return Container(
+                                margin: const EdgeInsets.only(bottom: 8), // Increased spacing
+                                padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 6),
+                                decoration: BoxDecoration(
+                                  color: isInCart 
+                                      ? Colors.green.withOpacity(0.1)
+                                      : Theme.of(context).cardColor.withOpacity(0.5),
+                                  borderRadius: BorderRadius.circular(8),
+                                  border: Border.all(
+                                    color: isInCart 
+                                        ? Colors.green.withOpacity(0.3)
+                                        : Colors.transparent,
+                                    width: 1,
                                   ),
-                                  maxLines: 1,
-                                  overflow: TextOverflow.ellipsis,
                                 ),
-                              ),
-                              if (!isInCart)
-                                ElevatedButton(
-                                  onPressed: () async {
-                                    try {
-                                      await cartProvider.addProductToCart(
-                                        productId: ingredient.id,
-                                        quantity: 1,
-                                      );
-                                      ScaffoldMessenger.of(context).showSnackBar(
-                                        SnackBar(
-                                          content: Text('${ingredient.title} added to cart'),
-                                          duration: const Duration(seconds: 2),
-                                          behavior: SnackBarBehavior.floating,
+                                child: Row(
+                                  children: [
+                                    Icon(
+                                      isInCart ? Icons.check_circle : Icons.add_circle_outline,
+                                      size: 18, // Increased from 16 to 18
+                                      color: isInCart ? Colors.green : Theme.of(context).primaryColor,
+                                    ),
+                                    const SizedBox(width: 10), // Increased from 8 to 10
+                                    Expanded(
+                                      child: Column(
+                                        crossAxisAlignment: CrossAxisAlignment.start,
+                                        children: [
+                                          Text(
+                                            ingredient.title,
+                                            style: TextStyle(
+                                              fontSize: 14, // Increased from 13 to 14
+                                              color: isInCart ? Colors.grey : null,
+                                              decoration: isInCart ? TextDecoration.lineThrough : null,
+                                              fontWeight: FontWeight.w500,
+                                            ),
+                                            maxLines: 2, // Allow 2 lines instead of 1
+                                            overflow: TextOverflow.ellipsis,
+                                          ),
+                                          // Show calories if available
+                                          if (ingredient.calories != null && ingredient.calories!.isNotEmpty)
+                                            Text(
+                                              '${ingredient.calories} cal',
+                                              style: TextStyle(
+                                                fontSize: 11,
+                                                color: Colors.orange,
+                                                fontWeight: FontWeight.w500,
+                                              ),
+                                            ),
+                                        ],
+                                      ),
+                                    ),
+                                    if (!isInCart) ...[
+                                      const SizedBox(width: 8),
+                                      ElevatedButton(
+                                        onPressed: () async {
+                                          try {
+                                            await cartProvider.addProductToCart(
+                                              productId: ingredient.id,
+                                              quantity: 1,
+                                            );
+                                            ScaffoldMessenger.of(context).showSnackBar(
+                                              SnackBar(
+                                                content: Text('${ingredient.title} added to cart'),
+                                                duration: const Duration(seconds: 2),
+                                                behavior: SnackBarBehavior.floating,
+                                              ),
+                                            );
+                                          } catch (error) {
+                                            GlobalMethods.errorDialog(
+                                              subtitle: error.toString(),
+                                              context: context,
+                                            );
+                                          }
+                                        },
+                                        style: ElevatedButton.styleFrom(
+                                          padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6), // Increased padding
+                                          minimumSize: const Size(55, 32), // Increased button size
+                                          tapTargetSize: MaterialTapTargetSize.shrinkWrap,
                                         ),
-                                      );
-                                    } catch (error) {
-                                      GlobalMethods.errorDialog(
-                                        subtitle: error.toString(),
-                                        context: context,
-                                      );
-                                    }
-                                  },
-                                  style: ElevatedButton.styleFrom(
-                                    padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
-                                    minimumSize: const Size(50, 28),
-                                    tapTargetSize: MaterialTapTargetSize.shrinkWrap,
-                                  ),
-                                  child: const Text(
-                                    'Add',
-                                    style: TextStyle(fontSize: 11),
-                                  ),
+                                        child: const Text(
+                                          'Add',
+                                          style: TextStyle(fontSize: 12),
+                                        ),
+                                      ),
+                                    ],
+                                  ],
                                 ),
-                            ],
+                              );
+                            },
                           ),
-                        );
-                      },
-                    ),
                   ),
                 ],
               ),
             ),
           ),
         ],
+      ),
+    );
+  }
+  
+  // Helper method to build nutrient chips
+  Widget _buildNutrientChip(String label, String value, Color color) {
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
+      decoration: BoxDecoration(
+        color: color.withOpacity(0.1),
+        borderRadius: BorderRadius.circular(8),
+        border: Border.all(color: color.withOpacity(0.3)),
+      ),
+      child: Text(
+        '$label: $value',
+        style: TextStyle(
+          fontSize: 10,
+          color: color.withOpacity(0.8),
+          fontWeight: FontWeight.w500,
+        ),
       ),
     );
   }
