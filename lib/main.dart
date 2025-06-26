@@ -195,7 +195,7 @@ class _MyAppState extends State<MyApp> {
         ),
       ),
       
-      cardTheme: CardTheme(
+      cardTheme: CardThemeData(
         elevation: 0,
         color: isDark ? const Color(0xFF121212) : const Color(0xFFFAFAFA),
         shape: RoundedRectangleBorder(

@@ -7,7 +7,6 @@ import 'package:grocery_app/widgets/base64_image_widget.dart';
 import 'package:grocery_app/widgets/heart_btn.dart';
 import 'package:grocery_app/widgets/text_widget.dart';
 import 'package:provider/provider.dart';
-
 import '../consts/firebase_consts.dart';
 import '../inner_screens/on_sale_screen.dart';
 import '../inner_screens/product_details.dart';
@@ -63,8 +62,9 @@ class _OnSaleWidgetState extends State<OnSaleWidget> with SingleTickerProviderSt
     double screenWidth = MediaQuery.of(context).size.width;
     // Determine if we're on web
     bool isWeb = screenWidth > 800;
+    bool isMobile = screenWidth <= 800;
     // Calculate proper image size
-    double imageSize = isWeb ? 90 : screenWidth * 0.22;
+    double imageSize = isWeb ? 90 : screenWidth * 0.20; // Reduced from 0.22 to 0.20
 
     return AnimatedBuilder(
       animation: _scaleAnimation,
@@ -72,16 +72,16 @@ class _OnSaleWidgetState extends State<OnSaleWidget> with SingleTickerProviderSt
         return Transform.scale(
           scale: _scaleAnimation.value,
           child: Container(
-            margin: const EdgeInsets.all(8),
+            margin: EdgeInsets.all(isMobile ? 6 : 8), // Reduced margin on mobile
             decoration: BoxDecoration(
               color: theme.cardColor,
-              borderRadius: BorderRadius.circular(20),
+              borderRadius: BorderRadius.circular(isMobile ? 16 : 20), // Smaller radius on mobile
               boxShadow: [
                 BoxShadow(
                   color: isDark 
                       ? Colors.black.withOpacity(0.3)
                       : Colors.grey.withOpacity(0.1),
-                  blurRadius: 15,
+                  blurRadius: isMobile ? 10 : 15,
                   offset: const Offset(0, 5),
                 ),
               ],
@@ -95,14 +95,14 @@ class _OnSaleWidgetState extends State<OnSaleWidget> with SingleTickerProviderSt
             child: Material(
               color: Colors.transparent,
               child: InkWell(
-                borderRadius: BorderRadius.circular(20),
+                borderRadius: BorderRadius.circular(isMobile ? 16 : 20),
                 onTap: () {
                   Navigator.pushNamed(context, ProductDetails.routeName,
                       arguments: productModel.id);
                   viewedProdProvider.addProductToHistory(productId: productModel.id);
                 },
                 child: Padding(
-                  padding: const EdgeInsets.all(16.0),
+                  padding: EdgeInsets.all(isMobile ? 12.0 : 16.0), // Reduced padding on mobile
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
@@ -115,7 +115,7 @@ class _OnSaleWidgetState extends State<OnSaleWidget> with SingleTickerProviderSt
                             width: imageSize,
                             height: imageSize,
                             decoration: BoxDecoration(
-                              borderRadius: BorderRadius.circular(16),
+                              borderRadius: BorderRadius.circular(isMobile ? 12 : 16),
                               gradient: LinearGradient(
                                 begin: Alignment.topCenter,
                                 end: Alignment.bottomCenter,
@@ -127,16 +127,16 @@ class _OnSaleWidgetState extends State<OnSaleWidget> with SingleTickerProviderSt
                             child: Stack(
                               children: [
                                 ClipRRect(
-                                  borderRadius: BorderRadius.circular(16),
+                                  borderRadius: BorderRadius.circular(isMobile ? 12 : 16),
                                   child: Padding(
-                                    padding: const EdgeInsets.all(8.0),
+                                    padding: EdgeInsets.all(isMobile ? 6.0 : 8.0),
                                     child: Base64ImageWidget(
                                       base64String: productModel.imageUrl,
                                       fit: BoxFit.contain,
                                       placeholder: Container(
                                         decoration: BoxDecoration(
                                           color: Colors.grey.shade200,
-                                          borderRadius: BorderRadius.circular(12),
+                                          borderRadius: BorderRadius.circular(8),
                                         ),
                                         child: Center(
                                           child: CircularProgressIndicator(
@@ -150,12 +150,12 @@ class _OnSaleWidgetState extends State<OnSaleWidget> with SingleTickerProviderSt
                                       errorWidget: Container(
                                         decoration: BoxDecoration(
                                           color: Colors.grey.shade200,
-                                          borderRadius: BorderRadius.circular(12),
+                                          borderRadius: BorderRadius.circular(8),
                                         ),
                                         child: Icon(
                                           Icons.image_not_supported_outlined,
                                           color: Colors.grey.shade400,
-                                          size: 24,
+                                          size: isMobile ? 20 : 24,
                                         ),
                                       ),
                                     ),
@@ -163,15 +163,18 @@ class _OnSaleWidgetState extends State<OnSaleWidget> with SingleTickerProviderSt
                                 ),
                                 // Sale Badge
                                 Positioned(
-                                  top: 4,
-                                  left: 4,
+                                  top: 2,
+                                  left: 2,
                                   child: Container(
-                                    padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
+                                    padding: EdgeInsets.symmetric(
+                                      horizontal: isMobile ? 4 : 6, 
+                                      vertical: isMobile ? 1 : 2
+                                    ),
                                     decoration: BoxDecoration(
                                       gradient: const LinearGradient(
                                         colors: [Color(0xFFFF6B6B), Color(0xFFEE5A52)],
                                       ),
-                                      borderRadius: BorderRadius.circular(8),
+                                      borderRadius: BorderRadius.circular(6),
                                       boxShadow: [
                                         BoxShadow(
                                           color: Colors.red.withOpacity(0.3),
@@ -180,13 +183,13 @@ class _OnSaleWidgetState extends State<OnSaleWidget> with SingleTickerProviderSt
                                         ),
                                       ],
                                     ),
-                                    child: const Text(
+                                    child: Text(
                                       'SALE',
                                       style: TextStyle(
                                         color: Colors.white,
-                                        fontSize: 8,
+                                        fontSize: isMobile ? 7 : 8,
                                         fontWeight: FontWeight.bold,
-                                        letterSpacing: 0.5,
+                                        letterSpacing: 0.3,
                                       ),
                                     ),
                                   ),
@@ -194,7 +197,7 @@ class _OnSaleWidgetState extends State<OnSaleWidget> with SingleTickerProviderSt
                               ],
                             ),
                           ),
-                          const SizedBox(width: 12),
+                          SizedBox(width: isMobile ? 8 : 12),
                           // Title and actions
                           Expanded(
                             child: Column(
@@ -204,7 +207,7 @@ class _OnSaleWidgetState extends State<OnSaleWidget> with SingleTickerProviderSt
                                 Text(
                                   productModel.title,
                                   style: TextStyle(
-                                    fontSize: isWeb ? 16 : 14,
+                                    fontSize: isMobile ? 13 : (isWeb ? 16 : 14),
                                     fontWeight: FontWeight.w600,
                                     color: color,
                                     height: 1.2,
@@ -212,7 +215,7 @@ class _OnSaleWidgetState extends State<OnSaleWidget> with SingleTickerProviderSt
                                   maxLines: 2,
                                   overflow: TextOverflow.ellipsis,
                                 ),
-                                const SizedBox(height: 8),
+                                SizedBox(height: isMobile ? 6 : 8),
                                 // Action buttons
                                 Row(
                                   children: [
@@ -221,7 +224,7 @@ class _OnSaleWidgetState extends State<OnSaleWidget> with SingleTickerProviderSt
                                         color: _isInCart 
                                             ? Colors.green.shade600
                                             : theme.primaryColor,
-                                        borderRadius: BorderRadius.circular(8),
+                                        borderRadius: BorderRadius.circular(6),
                                         boxShadow: [
                                           BoxShadow(
                                             color: (_isInCart 
@@ -234,9 +237,9 @@ class _OnSaleWidgetState extends State<OnSaleWidget> with SingleTickerProviderSt
                                       ),
                                       child: IconButton(
                                         padding: EdgeInsets.zero,
-                                        constraints: const BoxConstraints(
-                                          minWidth: 32,
-                                          minHeight: 32,
+                                        constraints: BoxConstraints(
+                                          minWidth: isMobile ? 28 : 32,
+                                          minHeight: isMobile ? 28 : 32,
                                         ),
                                         onPressed: _isInCart ? null : () async {
                                           final User? user = authInstance.currentUser;
@@ -265,13 +268,15 @@ class _OnSaleWidgetState extends State<OnSaleWidget> with SingleTickerProviderSt
                                         },
                                         icon: Icon(
                                           _isInCart ? IconlyBold.bag2 : IconlyLight.bag2,
-                                          size: 18,
+                                          size: isMobile ? 16 : 18,
                                           color: Colors.white,
                                         ),
                                       ),
                                     ),
-                                    const SizedBox(width: 8),
+                                    SizedBox(width: isMobile ? 6 : 8),
                                     Container(
+                                      width: isMobile ? 28 : 32,
+                                      height: isMobile ? 28 : 32,
                                       decoration: BoxDecoration(
                                         color: theme.cardColor,
                                         shape: BoxShape.circle,
@@ -295,44 +300,69 @@ class _OnSaleWidgetState extends State<OnSaleWidget> with SingleTickerProviderSt
                           ),
                         ],
                       ),
-                      const SizedBox(height: 12),
-                      // Price with enhanced styling
-                      Row(
-                        children: [
-                          Text(
-                            '\$${productModel.salePrice.toStringAsFixed(2)}',
-                            style: TextStyle(
-                              fontSize: isWeb ? 18 : 16,
-                              fontWeight: FontWeight.bold,
-                              color: theme.primaryColor,
-                            ),
-                          ),
-                          const SizedBox(width: 8),
-                          Text(
-                            '\$${productModel.price.toStringAsFixed(2)}',
-                            style: TextStyle(
-                              fontSize: isWeb ? 14 : 12,
-                              color: Colors.grey.shade500,
-                              decoration: TextDecoration.lineThrough,
-                            ),
-                          ),
-                          const Spacer(),
-                          Container(
-                            padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
-                            decoration: BoxDecoration(
-                              color: Colors.green.shade100,
-                              borderRadius: BorderRadius.circular(8),
-                            ),
-                            child: Text(
-                              '${((productModel.price - productModel.salePrice) / productModel.price * 100).round()}% OFF',
-                              style: TextStyle(
-                                fontSize: 10,
-                                fontWeight: FontWeight.bold,
-                                color: Colors.green.shade700,
+                      SizedBox(height: isMobile ? 8 : 12),
+                      // Price with enhanced styling - FIXED OVERFLOW HERE
+                      LayoutBuilder(
+                        builder: (context, constraints) {
+                          return Row(
+                            children: [
+                              // Price section - takes available space
+                              Expanded(
+                                child: Row(
+                                  children: [
+                                    Flexible(
+                                      child: Text(
+                                        '\$${productModel.salePrice.toStringAsFixed(2)}',
+                                        style: TextStyle(
+                                          fontSize: isMobile ? 14 : (isWeb ? 18 : 16),
+                                          fontWeight: FontWeight.bold,
+                                          color: theme.primaryColor,
+                                        ),
+                                        overflow: TextOverflow.ellipsis,
+                                      ),
+                                    ),
+                                    SizedBox(width: isMobile ? 4 : 8),
+                                    Flexible(
+                                      child: Text(
+                                        '\$${productModel.price.toStringAsFixed(2)}',
+                                        style: TextStyle(
+                                          fontSize: isMobile ? 10 : (isWeb ? 14 : 12),
+                                          color: Colors.grey.shade500,
+                                          decoration: TextDecoration.lineThrough,
+                                        ),
+                                        overflow: TextOverflow.ellipsis,
+                                      ),
+                                    ),
+                                  ],
+                                ),
                               ),
-                            ),
-                          ),
-                        ],
+                              // Discount badge - fixed width to prevent overflow
+                              Container(
+                                constraints: BoxConstraints(
+                                  maxWidth: constraints.maxWidth * 0.3, // Max 30% of available width
+                                ),
+                                padding: EdgeInsets.symmetric(
+                                  horizontal: isMobile ? 6 : 8, 
+                                  vertical: isMobile ? 2 : 4
+                                ),
+                                decoration: BoxDecoration(
+                                  color: Colors.green.shade100,
+                                  borderRadius: BorderRadius.circular(6),
+                                ),
+                                child: Text(
+                                  '${((productModel.price - productModel.salePrice) / productModel.price * 100).round()}% OFF',
+                                  style: TextStyle(
+                                    fontSize: isMobile ? 8 : 10,
+                                    fontWeight: FontWeight.bold,
+                                    color: Colors.green.shade700,
+                                  ),
+                                  overflow: TextOverflow.ellipsis,
+                                  textAlign: TextAlign.center,
+                                ),
+                              ),
+                            ],
+                          );
+                        },
                       ),
                     ],
                   ),

@@ -33,7 +33,7 @@ class ProductModel with ChangeNotifier {
   });
 
   // Factory constructor to create a ProductModel from a Firestore document
-  factory ProductModel.fromJson(DocumentSnapshot doc) {
+  factory ProductModel.fromFirestore(DocumentSnapshot doc) {
     Map<String, dynamic> data = doc.data() as Map<String, dynamic>;
     
     // Helper function to safely convert a value to String?
@@ -60,6 +60,46 @@ class ProductModel with ChangeNotifier {
       nutrients: _parseString(data['nutrients']), 
       createdAt: data['createdAt'] ?? Timestamp.now(),
     );
+  }
+
+  // Factory constructor to create a ProductModel from JSON (for local storage)
+  factory ProductModel.fromJson(Map<String, dynamic> json) {
+    return ProductModel(
+      id: json['id'] ?? '',
+      title: json['title'] ?? 'Untitled Product',
+      imageUrl: json['imageUrl'] ?? '',
+      categoryId: json['categoryId'] ?? '',
+      categoryName: json['categoryName'] ?? 'Uncategorized',
+      description: json['description'] ?? 'No description available.',
+      price: _parseDouble(json['price'], defaultValue: 0.0),
+      salePrice: _parseDouble(json['salePrice'], defaultValue: 0.0),
+      isOnSale: json['isOnSale'] ?? false,
+      isPiece: json['isPiece'] ?? false,
+      calories: json['calories'],
+      nutrients: json['nutrients'],
+      createdAt: json['createdAt'] != null 
+          ? Timestamp.fromMillisecondsSinceEpoch(json['createdAt'])
+          : Timestamp.now(),
+    );
+  }
+
+  // Convert ProductModel to JSON (for local storage)
+  Map<String, dynamic> toJson() {
+    return {
+      'id': id,
+      'title': title,
+      'imageUrl': imageUrl,
+      'categoryId': categoryId,
+      'categoryName': categoryName,
+      'description': description,
+      'price': price,
+      'salePrice': salePrice,
+      'isOnSale': isOnSale,
+      'isPiece': isPiece,
+      'calories': calories,
+      'nutrients': nutrients,
+      'createdAt': createdAt.millisecondsSinceEpoch,
+    };
   }
 
   // Helper function to safely parse doubles

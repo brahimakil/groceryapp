@@ -38,7 +38,7 @@ class ProductsProvider with ChangeNotifier {
         for (var element in productsSnapshot.docs) {
            try {
              // Use the factory constructor
-            fetchedList.add(ProductModel.fromJson(element));
+            fetchedList.add(ProductModel.fromFirestore(element));
            } catch (e) {
              print("Error parsing product ${element.id}: $e");
              // Optionally skip invalid products

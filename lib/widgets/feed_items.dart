@@ -69,6 +69,22 @@ class _FeedsWidgetState extends State<FeedsWidget> with SingleTickerProviderStat
     bool? _isInWishlist = wishlistProvider.getWishlistItems.containsKey(productModel.id);
     final viewedProdProvider = Provider.of<ViewedProdProvider>(context, listen: false);
 
+    // Dynamic sizing based on screen width
+    final screenWidth = MediaQuery.of(context).size.width;
+    final isTablet = screenWidth > 800;
+    final isMobile = screenWidth <= 800;
+    
+    // Responsive dimensions
+    final borderRadius = isTablet ? 20.0 : 16.0;
+    final cardMargin = isTablet ? 8.0 : 4.0;
+    final imagePadding = isTablet ? 16.0 : 12.0;
+    final contentPadding = isTablet ? 16.0 : 10.0;
+    
+    // Responsive font sizes
+    final titleFontSize = isTablet ? 16.0 : 13.0;
+    final priceFontSize = isTablet ? 18.0 : 15.0;
+    final buttonFontSize = isTablet ? 14.0 : 11.0;
+
     return FadeTransition(
       opacity: _fadeAnimation,
       child: AnimatedBuilder(
@@ -77,16 +93,16 @@ class _FeedsWidgetState extends State<FeedsWidget> with SingleTickerProviderStat
           return Transform.scale(
             scale: _scaleAnimation.value,
             child: Container(
-              margin: const EdgeInsets.all(8),
+              margin: EdgeInsets.all(cardMargin),
               decoration: BoxDecoration(
                 color: theme.cardColor,
-                borderRadius: BorderRadius.circular(20),
+                borderRadius: BorderRadius.circular(borderRadius),
                 boxShadow: [
                   BoxShadow(
                     color: isDark 
                         ? Colors.black.withOpacity(0.3)
                         : Colors.grey.withOpacity(0.1),
-                    blurRadius: 15,
+                    blurRadius: isTablet ? 15 : 10,
                     offset: const Offset(0, 5),
                   ),
                 ],
@@ -106,241 +122,279 @@ class _FeedsWidgetState extends State<FeedsWidget> with SingleTickerProviderStat
                         arguments: productModel.id);
                     viewedProdProvider.addProductToHistory(productId: productModel.id);
                   },
-                  borderRadius: BorderRadius.circular(20),
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      // Image Section with enhanced styling
-                      Expanded(
-                        flex: 3,
-                        child: Stack(
-                          children: [
-                            Container(
-                              width: double.infinity,
-                              decoration: BoxDecoration(
-                                borderRadius: const BorderRadius.only(
-                                  topLeft: Radius.circular(20),
-                                  topRight: Radius.circular(20),
-                                ),
-                                gradient: LinearGradient(
-                                  begin: Alignment.topCenter,
-                                  end: Alignment.bottomCenter,
-                                  colors: isDark
-                                      ? [Colors.grey.shade800, Colors.grey.shade900]
-                                      : [Colors.grey.shade50, Colors.grey.shade100],
-                                ),
-                              ),
-                              child: ClipRRect(
-                                borderRadius: const BorderRadius.only(
-                                  topLeft: Radius.circular(20),
-                                  topRight: Radius.circular(20),
-                                ),
-                                child: Padding(
-                                  padding: const EdgeInsets.all(16.0),
-                                  child: Base64ImageWidget(
-                                    base64String: productModel.imageUrl,
-                                    fit: BoxFit.contain,
-                                    placeholder: Container(
-                                      decoration: BoxDecoration(
-                                        color: Colors.grey.shade200,
-                                        borderRadius: BorderRadius.circular(12),
-                                      ),
-                                      child: Center(
-                                        child: CircularProgressIndicator(
-                                          strokeWidth: 2,
-                                          valueColor: AlwaysStoppedAnimation<Color>(
-                                            theme.primaryColor,
+                  borderRadius: BorderRadius.circular(borderRadius),
+                  child: LayoutBuilder(
+                    builder: (context, constraints) {
+                      // Calculate available height and distribute it intelligently
+                      final availableHeight = constraints.maxHeight - (cardMargin * 2);
+                      final buttonHeight = isTablet ? 36.0 : 32.0;
+                      final minContentHeight = buttonHeight + (contentPadding * 2) + 60; // Button + padding + min text space
+                      final imageHeight = availableHeight - minContentHeight;
+                      
+                      return Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          // Image Section with calculated height
+                          SizedBox(
+                            height: imageHeight > 80 ? imageHeight : 80, // Minimum image height
+                            child: Stack(
+                              children: [
+                                Container(
+                                  width: double.infinity,
+                                  height: double.infinity,
+                                  decoration: BoxDecoration(
+                                    borderRadius: BorderRadius.only(
+                                      topLeft: Radius.circular(borderRadius),
+                                      topRight: Radius.circular(borderRadius),
+                                    ),
+                                    gradient: LinearGradient(
+                                      begin: Alignment.topCenter,
+                                      end: Alignment.bottomCenter,
+                                      colors: isDark
+                                          ? [Colors.grey.shade800, Colors.grey.shade900]
+                                          : [Colors.grey.shade50, Colors.grey.shade100],
+                                    ),
+                                  ),
+                                  child: ClipRRect(
+                                    borderRadius: BorderRadius.only(
+                                      topLeft: Radius.circular(borderRadius),
+                                      topRight: Radius.circular(borderRadius),
+                                    ),
+                                    child: Padding(
+                                      padding: EdgeInsets.all(imagePadding),
+                                      child: Base64ImageWidget(
+                                        base64String: productModel.imageUrl,
+                                        fit: BoxFit.contain,
+                                        placeholder: Container(
+                                          decoration: BoxDecoration(
+                                            color: Colors.grey.shade200,
+                                            borderRadius: BorderRadius.circular(8),
+                                          ),
+                                          child: Center(
+                                            child: CircularProgressIndicator(
+                                              strokeWidth: 2,
+                                              valueColor: AlwaysStoppedAnimation<Color>(
+                                                theme.primaryColor,
+                                              ),
+                                            ),
+                                          ),
+                                        ),
+                                        errorWidget: Container(
+                                          decoration: BoxDecoration(
+                                            color: Colors.grey.shade200,
+                                            borderRadius: BorderRadius.circular(8),
+                                          ),
+                                          child: Icon(
+                                            Icons.image_not_supported_outlined,
+                                            color: Colors.grey.shade400,
+                                            size: isTablet ? 32 : 24,
                                           ),
                                         ),
                                       ),
                                     ),
-                                    errorWidget: Container(
+                                  ),
+                                ),
+                                
+                                // Sale Badge
+                                if (productModel.isOnSale)
+                                  Positioned(
+                                    top: 6,
+                                    left: 6,
+                                    child: Container(
+                                      padding: EdgeInsets.symmetric(
+                                        horizontal: isTablet ? 6 : 4, 
+                                        vertical: isTablet ? 3 : 2
+                                      ),
                                       decoration: BoxDecoration(
-                                        color: Colors.grey.shade200,
-                                        borderRadius: BorderRadius.circular(12),
+                                        gradient: const LinearGradient(
+                                          colors: [Color(0xFFFF6B6B), Color(0xFFEE5A52)],
+                                        ),
+                                        borderRadius: BorderRadius.circular(8),
+                                        boxShadow: [
+                                          BoxShadow(
+                                            color: Colors.red.withOpacity(0.3),
+                                            blurRadius: 4,
+                                            offset: const Offset(0, 1),
+                                          ),
+                                        ],
                                       ),
-                                      child: Icon(
-                                        Icons.image_not_supported_outlined,
-                                        color: Colors.grey.shade400,
-                                        size: 40,
+                                      child: Text(
+                                        'SALE',
+                                        style: TextStyle(
+                                          color: Colors.white,
+                                          fontSize: isTablet ? 9 : 7,
+                                          fontWeight: FontWeight.bold,
+                                          letterSpacing: 0.3,
+                                        ),
                                       ),
                                     ),
                                   ),
+                                
+                                // Wishlist Button
+                                Positioned(
+                                  top: 6,
+                                  right: 6,
+                                  child: Container(
+                                    width: isTablet ? 32 : 28,
+                                    height: isTablet ? 32 : 28,
+                                    decoration: BoxDecoration(
+                                      color: theme.cardColor.withOpacity(0.9),
+                                      shape: BoxShape.circle,
+                                      boxShadow: [
+                                        BoxShadow(
+                                          color: Colors.black.withOpacity(0.1),
+                                          blurRadius: 4,
+                                          offset: const Offset(0, 1),
+                                        ),
+                                      ],
+                                    ),
+                                    child: HeartBTN(
+                                      productId: productModel.id,
+                                      isInWishlist: _isInWishlist,
+                                    ),
+                                  ),
                                 ),
-                              ),
+                              ],
                             ),
-                            
-                            // Sale Badge
-                            if (productModel.isOnSale)
-                              Positioned(
-                                top: 12,
-                                left: 12,
-                                child: Container(
-                                  padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
-                                  decoration: BoxDecoration(
-                                    gradient: const LinearGradient(
-                                      colors: [Color(0xFFFF6B6B), Color(0xFFEE5A52)],
-                                    ),
-                                    borderRadius: BorderRadius.circular(12),
-                                    boxShadow: [
-                                      BoxShadow(
-                                        color: Colors.red.withOpacity(0.3),
-                                        blurRadius: 8,
-                                        offset: const Offset(0, 2),
-                                      ),
-                                    ],
-                                  ),
-                                  child: const Text(
-                                    'SALE',
-                                    style: TextStyle(
-                                      color: Colors.white,
-                                      fontSize: 10,
-                                      fontWeight: FontWeight.bold,
-                                      letterSpacing: 0.5,
-                                    ),
-                                  ),
-                                ),
-                              ),
-                            
-                            // Wishlist Button
-                            Positioned(
-                              top: 12,
-                              right: 12,
-                              child: Container(
-                                decoration: BoxDecoration(
-                                  color: theme.cardColor.withOpacity(0.9),
-                                  shape: BoxShape.circle,
-                                  boxShadow: [
-                                    BoxShadow(
-                                      color: Colors.black.withOpacity(0.1),
-                                      blurRadius: 8,
-                                      offset: const Offset(0, 2),
-                                    ),
-                                  ],
-                                ),
-                                child: HeartBTN(
-                                  productId: productModel.id,
-                                  isInWishlist: _isInWishlist,
-                                ),
-                              ),
-                            ),
-                          ],
-                        ),
-                      ),
-                      
-                      // Product Info Section
-                      Expanded(
-                        flex: 2,
-                        child: Padding(
-                          padding: const EdgeInsets.all(16.0),
-                          child: Column(
-                            crossAxisAlignment: CrossAxisAlignment.start,
-                            children: [
-                              // Product Title
-                              Expanded(
-                                child: Text(
-                                  productModel.title,
-                                  style: TextStyle(
-                                    fontSize: 16,
-                                    fontWeight: FontWeight.w600,
-                                    color: color,
-                                    height: 1.2,
-                                  ),
-                                  maxLines: 2,
-                                  overflow: TextOverflow.ellipsis,
-                                ),
-                              ),
-                              
-                              const SizedBox(height: 8),
-                              
-                              // Price Section
-                              Row(
+                          ),
+                          
+                          // Product Info Section with calculated remaining height
+                          Expanded(
+                            child: Padding(
+                              padding: EdgeInsets.all(contentPadding),
+                              child: Column(
+                                crossAxisAlignment: CrossAxisAlignment.start,
                                 children: [
-                                  if (productModel.isOnSale) ...[
-                                    Text(
-                                      '\$${productModel.salePrice.toStringAsFixed(2)}',
+                                  // Product Title - Takes available space
+                                  Expanded(
+                                    child: Text(
+                                      productModel.title,
                                       style: TextStyle(
-                                        fontSize: 18,
-                                        fontWeight: FontWeight.bold,
-                                        color: theme.primaryColor,
+                                        fontSize: titleFontSize,
+                                        fontWeight: FontWeight.w600,
+                                        color: color,
+                                        height: 1.1,
+                                      ),
+                                      maxLines: 2,
+                                      overflow: TextOverflow.ellipsis,
+                                    ),
+                                  ),
+                                  
+                                  SizedBox(height: isTablet ? 6 : 4),
+                                  
+                                  // Price Section - Fixed height to prevent overflow
+                                  SizedBox(
+                                    height: priceFontSize + 4,
+                                    child: Row(
+                                      children: [
+                                        if (productModel.isOnSale) ...[
+                                          Flexible(
+                                            child: Text(
+                                              '\$${productModel.salePrice.toStringAsFixed(2)}',
+                                              style: TextStyle(
+                                                fontSize: priceFontSize,
+                                                fontWeight: FontWeight.bold,
+                                                color: theme.primaryColor,
+                                              ),
+                                              overflow: TextOverflow.ellipsis,
+                                            ),
+                                          ),
+                                          const SizedBox(width: 4),
+                                          Flexible(
+                                            child: Text(
+                                              '\$${productModel.price.toStringAsFixed(2)}',
+                                              style: TextStyle(
+                                                fontSize: priceFontSize - 2,
+                                                color: Colors.grey.shade500,
+                                                decoration: TextDecoration.lineThrough,
+                                              ),
+                                              overflow: TextOverflow.ellipsis,
+                                            ),
+                                          ),
+                                        ] else
+                                          Flexible(
+                                            child: Text(
+                                              '\$${productModel.price.toStringAsFixed(2)}',
+                                              style: TextStyle(
+                                                fontSize: priceFontSize,
+                                                fontWeight: FontWeight.bold,
+                                                color: theme.primaryColor,
+                                              ),
+                                              overflow: TextOverflow.ellipsis,
+                                            ),
+                                          ),
+                                      ],
+                                    ),
+                                  ),
+                                  
+                                  SizedBox(height: isTablet ? 8 : 6),
+                                  
+                                  // Add to Cart Button - Fixed height at bottom
+                                  SizedBox(
+                                    width: double.infinity,
+                                    height: buttonHeight,
+                                    child: ElevatedButton(
+                                      onPressed: _isInCart ? null : () async {
+                                        final User? user = authInstance.currentUser;
+                                        if (user == null) {
+                                          GlobalMethods.errorDialog(
+                                              subtitle: 'Please login to add items to cart',
+                                              context: context);
+                                          return;
+                                        }
+                                        
+                                        HapticFeedback.mediumImpact();
+                                        _animationController.forward().then((_) {
+                                          _animationController.reverse();
+                                        });
+                                        
+                                        await cartProvider.addProductToCart(
+                                            productId: productModel.id, quantity: 1);
+                                      },
+                                      style: ElevatedButton.styleFrom(
+                                        backgroundColor: _isInCart 
+                                            ? Colors.green.shade600
+                                            : theme.primaryColor,
+                                        foregroundColor: Colors.white,
+                                        elevation: 0,
+                                        padding: EdgeInsets.symmetric(horizontal: isTablet ? 12 : 8),
+                                        shape: RoundedRectangleBorder(
+                                          borderRadius: BorderRadius.circular(isTablet ? 10 : 8),
+                                        ),
+                                        shadowColor: _isInCart 
+                                            ? Colors.green.withOpacity(0.3)
+                                            : theme.primaryColor.withOpacity(0.3),
+                                      ),
+                                      child: Row(
+                                        mainAxisAlignment: MainAxisAlignment.center,
+                                        mainAxisSize: MainAxisSize.min,
+                                        children: [
+                                          Icon(
+                                            _isInCart ? IconlyBold.bag2 : IconlyLight.bag2,
+                                            size: isTablet ? 16 : 14,
+                                          ),
+                                          SizedBox(width: isTablet ? 6 : 4),
+                                          Flexible(
+                                            child: Text(
+                                              _isInCart ? 'In Cart' : 'Add to Cart',
+                                              style: TextStyle(
+                                                fontSize: buttonFontSize,
+                                                fontWeight: FontWeight.w600,
+                                              ),
+                                              overflow: TextOverflow.ellipsis,
+                                            ),
+                                          ),
+                                        ],
                                       ),
                                     ),
-                                    const SizedBox(width: 8),
-                                    Text(
-                                      '\$${productModel.price.toStringAsFixed(2)}',
-                                      style: TextStyle(
-                                        fontSize: 14,
-                                        color: Colors.grey.shade500,
-                                        decoration: TextDecoration.lineThrough,
-                                      ),
-                                    ),
-                                  ] else
-                                    Text(
-                                      '\$${productModel.price.toStringAsFixed(2)}',
-                                      style: TextStyle(
-                                        fontSize: 18,
-                                        fontWeight: FontWeight.bold,
-                                        color: theme.primaryColor,
-                                      ),
-                                    ),
+                                  ),
                                 ],
                               ),
-                              
-                              const SizedBox(height: 12),
-                              
-                              // Add to Cart Button
-                              SizedBox(
-                                width: double.infinity,
-                                height: 44,
-                                child: ElevatedButton.icon(
-                                  onPressed: _isInCart ? null : () async {
-                                    final User? user = authInstance.currentUser;
-                                    if (user == null) {
-                                      GlobalMethods.errorDialog(
-                                          subtitle: 'Please login to add items to cart',
-                                          context: context);
-                                      return;
-                                    }
-                                    
-                                    HapticFeedback.mediumImpact();
-                                    _animationController.forward().then((_) {
-                                      _animationController.reverse();
-                                    });
-                                    
-                                    await cartProvider.addProductToCart(
-                                        productId: productModel.id, quantity: 1);
-                                  },
-                                  icon: Icon(
-                                    _isInCart ? IconlyBold.bag2 : IconlyLight.bag2,
-                                    size: 18,
-                                  ),
-                                  label: Text(
-                                    _isInCart ? 'In Cart' : 'Add to Cart',
-                                    style: const TextStyle(
-                                      fontSize: 14,
-                                      fontWeight: FontWeight.w600,
-                                    ),
-                                  ),
-                                  style: ElevatedButton.styleFrom(
-                                    backgroundColor: _isInCart 
-                                        ? Colors.green.shade600
-                                        : theme.primaryColor,
-                                    foregroundColor: Colors.white,
-                                    elevation: 0,
-                                    shape: RoundedRectangleBorder(
-                                      borderRadius: BorderRadius.circular(12),
-                                    ),
-                                    shadowColor: _isInCart 
-                                        ? Colors.green.withOpacity(0.3)
-                                        : theme.primaryColor.withOpacity(0.3),
-                                  ),
-                                ),
-                              ),
-                            ],
+                            ),
                           ),
-                        ),
-                      ),
-                    ],
+                        ],
+                      );
+                    },
                   ),
                 ),
               ),

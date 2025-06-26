@@ -22,6 +22,30 @@ class NutritionalInfo {
     required this.fiber,
     required this.healthFactors,
   });
+
+  // Add toJson method
+  Map<String, dynamic> toJson() {
+    return {
+      'totalCalories': totalCalories,
+      'protein': protein,
+      'carbs': carbs,
+      'fat': fat,
+      'fiber': fiber,
+      'healthFactors': healthFactors,
+    };
+  }
+
+  // Add fromJson method
+  factory NutritionalInfo.fromJson(Map<String, dynamic> json) {
+    return NutritionalInfo(
+      totalCalories: json['totalCalories']?.toDouble() ?? 0.0,
+      protein: json['protein'] ?? '',
+      carbs: json['carbs'] ?? '',
+      fat: json['fat'] ?? '',
+      fiber: json['fiber'] ?? '',
+      healthFactors: List<String>.from(json['healthFactors'] ?? []),
+    );
+  }
 }
 
 class MealSuggestion {
@@ -40,6 +64,32 @@ class MealSuggestion {
     required this.preparationSteps,
     required this.nutritionalInfo,
   });
+
+  // Add toJson method
+  Map<String, dynamic> toJson() {
+    return {
+      'title': title,
+      'description': description,
+      'requiredIngredients': requiredIngredients,
+      'missingIngredients': missingIngredients.map((p) => p.toJson()).toList(),
+      'preparationSteps': preparationSteps,
+      'nutritionalInfo': nutritionalInfo.toJson(),
+    };
+  }
+
+  // Add fromJson method
+  factory MealSuggestion.fromJson(Map<String, dynamic> json) {
+    return MealSuggestion(
+      title: json['title'] ?? '',
+      description: json['description'] ?? '',
+      requiredIngredients: List<String>.from(json['requiredIngredients'] ?? []),
+      missingIngredients: (json['missingIngredients'] as List<dynamic>?)
+          ?.map((item) => ProductModel.fromJson(item))
+          .toList() ?? [],
+      preparationSteps: List<String>.from(json['preparationSteps'] ?? []),
+      nutritionalInfo: NutritionalInfo.fromJson(json['nutritionalInfo'] ?? {}),
+    );
+  }
 }
 
 class MealSuggestionsProvider with ChangeNotifier {
@@ -51,6 +101,28 @@ class MealSuggestionsProvider with ChangeNotifier {
   List<MealSuggestion> get suggestions => _suggestions;
   bool get isLoading => _isLoading;
   String get error => _error;
+  
+  // Clear suggestions
+  void clearSuggestions() {
+    _suggestions = [];
+    _error = '';
+    notifyListeners();
+  }
+  
+  // Restore suggestions from saved data
+  void restoreSuggestions(List<dynamic> suggestionsData) {
+    try {
+      _suggestions = suggestionsData
+          .map((data) => MealSuggestion.fromJson(data))
+          .toList();
+      _error = '';
+      notifyListeners();
+    } catch (e) {
+      print('Error restoring suggestions: $e');
+      _error = 'Error loading saved suggestions';
+      notifyListeners();
+    }
+  }
   
   // Generate meal suggestions using the Gemini API
   Future<void> generateSuggestions({
