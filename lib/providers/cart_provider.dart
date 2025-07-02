@@ -20,40 +20,46 @@ class CartProvider with ChangeNotifier {
     final User? user = authInstance.currentUser;
     if (user == null) {
       print("User not logged in. Cannot add to Firestore cart.");
-      // Optionally handle adding to a local-only cart for guests
       return;
     }
     final _uid = user.uid;
-    final cartId = const Uuid().v4();
 
     try {
-      // Check if product already exists in cart to update quantity
-      // (This requires fetching first, simplifying for now by just adding)
+      // Check if product already exists in cart
+      if (_cartItems.containsKey(productId)) {
+        print("Product $productId already in cart. Skipping duplicate addition.");
+        return; // Don't add duplicates, just return
+      }
 
-      // Use the actual user document structure
+      final cartId = const Uuid().v4();
+
+      // Update local state immediately for instant UI feedback
+      _cartItems[productId] = CartModel(
+        id: cartId,
+        productId: productId,
+        quantity: quantity,
+      );
+      notifyListeners(); // Notify immediately for instant UI update
+
+      // Then update Firestore in the background
       await FirebaseFirestore.instance.collection('users').doc(_uid).update({
         'userCart': FieldValue.arrayUnion([
           {
-            'cartId': cartId, // Unique ID for this cart item instance
+            'cartId': cartId,
             'productId': productId,
             'quantity': quantity,
-             // Add timestamp if needed: 'addedAt': Timestamp.now(),
           }
         ])
       });
-      // Also update local state for immediate UI feedback
-       _cartItems.putIfAbsent(
-        productId,
-        () => CartModel(
-              id: cartId, // Use generated cartId
-              productId: productId,
-              quantity: quantity,
-            ));
-      notifyListeners();
-       print("Added product $productId to cart for user $_uid");
+
+      print("Added product $productId to cart for user $_uid");
     } catch (error) {
       print("Error adding to cart in Firestore: $error");
-      // Re-throw or handle error display
+      
+      // Revert local state if Firestore update failed
+      _cartItems.remove(productId);
+      notifyListeners();
+      
       rethrow;
     }
   }
