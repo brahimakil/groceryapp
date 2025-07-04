@@ -18,6 +18,8 @@ import '../services/global_methods.dart';
 import '../services/utils.dart';
 import 'heart_btn.dart';
 import 'package:grocery_app/providers/viewed_prod_provider.dart';
+import 'star_rating_widget.dart';
+import '../services/review_service.dart';
 
 class FeedsWidget extends StatefulWidget {
   const FeedsWidget({Key? key}) : super(key: key);
@@ -30,6 +32,11 @@ class _FeedsWidgetState extends State<FeedsWidget> with SingleTickerProviderStat
   final _quantityTextController = TextEditingController();
   late AnimationController _animationController;
   late Animation<double> _scaleAnimation;
+  
+  // Add these variables for rating
+  double _rating = 0.0;
+  int _totalReviews = 0;
+  bool _isLoadingRating = false;
 
   @override
   void initState() {
@@ -42,6 +49,107 @@ class _FeedsWidgetState extends State<FeedsWidget> with SingleTickerProviderStat
       CurvedAnimation(parent: _animationController, curve: Curves.easeInOut),
     );
     super.initState();
+    // Load rating when widget initializes
+    _loadRating();
+  }
+
+  // Add this method to load rating
+  Future<void> _loadRating() async {
+    if (!mounted) return;
+    
+    setState(() {
+      _isLoadingRating = true;
+    });
+
+    try {
+      final productModel = Provider.of<ProductModel>(context, listen: false);
+      final stats = await ReviewService.getProductRatingStats(productModel.id);
+      
+      if (mounted) {
+        setState(() {
+          _rating = stats['averageRating']?.toDouble() ?? 0.0;
+          _totalReviews = stats['totalReviews'] ?? 0;
+          _isLoadingRating = false;
+        });
+      }
+    } catch (error) {
+      if (mounted) {
+        setState(() {
+          _isLoadingRating = false;
+        });
+      }
+    }
+  }
+
+  // Add this method to build star rating
+  Widget _buildStarRating() {
+    if (_isLoadingRating) {
+      return SizedBox(
+        height: 16,
+        child: Row(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            SizedBox(
+              width: 12,
+              height: 12,
+              child: CircularProgressIndicator(
+                strokeWidth: 1.5,
+                valueColor: AlwaysStoppedAnimation<Color>(Colors.grey),
+              ),
+            ),
+          ],
+        ),
+      );
+    }
+
+    if (_rating == 0.0) {
+      return SizedBox(height: 16); // Empty space if no rating
+    }
+
+    final screenWidth = MediaQuery.of(context).size.width;
+    final isTablet = screenWidth > 800;
+    final starSize = isTablet ? 12.0 : 10.0;
+
+    return Row(
+      mainAxisSize: MainAxisSize.min,
+      children: [
+        // Star display
+        Row(
+          mainAxisSize: MainAxisSize.min,
+          children: List.generate(5, (index) {
+            if (index < _rating.floor()) {
+              return Icon(
+                Icons.star,
+                size: starSize,
+                color: Colors.amber,
+              );
+            } else if (index < _rating && _rating % 1 != 0) {
+              return Icon(
+                Icons.star_half,
+                size: starSize,
+                color: Colors.amber,
+              );
+            } else {
+              return Icon(
+                Icons.star_border,
+                size: starSize,
+                color: Colors.grey,
+              );
+            }
+          }),
+        ),
+        if (_totalReviews > 0) ...[
+          SizedBox(width: 2),
+          Text(
+            '($_totalReviews)',
+            style: TextStyle(
+              fontSize: starSize * 0.8,
+              color: Colors.grey[600],
+            ),
+          ),
+        ],
+      ],
+    );
   }
 
   @override
@@ -267,6 +375,10 @@ class _FeedsWidgetState extends State<FeedsWidget> with SingleTickerProviderStat
                               overflow: TextOverflow.ellipsis,
                             ),
                           ),
+                          
+                          // Add this section for star rating
+                          SizedBox(height: isTablet ? 4 : 2),
+                          _buildStarRating(),
                           
                           SizedBox(height: isTablet ? 6 : 4),
                           

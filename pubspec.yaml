@@ -30,6 +30,7 @@ dependencies:
   http: ^0.13.6  # Add this line
   flutter_dotenv: ^5.1.0 # Seems okay, latest stable
   readmore: ^2.2.0 # Or the latest version
+  flutter_rating_bar: ^4.0.1 # Added for rating functionality
 
   # Firebase Core (Upgrade to latest stable)
   firebase_core: ^3.1.0 # Example: Use latest stable version

@@ -16,6 +16,8 @@ import '../providers/wishlist_provider.dart';
 import '../services/global_methods.dart';
 import 'price_widget.dart';
 import '../providers/viewed_prod_provider.dart';
+import 'star_rating_widget.dart';
+import '../services/review_service.dart';
 
 class OnSaleWidget extends StatefulWidget {
   const OnSaleWidget({Key? key}) : super(key: key);
@@ -27,6 +29,11 @@ class OnSaleWidget extends StatefulWidget {
 class _OnSaleWidgetState extends State<OnSaleWidget> with SingleTickerProviderStateMixin {
   late AnimationController _animationController;
   late Animation<double> _scaleAnimation;
+  
+  // Add these variables for rating
+  double _rating = 0.0;
+  int _totalReviews = 0;
+  bool _isLoadingRating = false;
 
   @override
   void initState() {
@@ -37,6 +44,107 @@ class _OnSaleWidgetState extends State<OnSaleWidget> with SingleTickerProviderSt
     );
     _scaleAnimation = Tween<double>(begin: 1.0, end: 0.95).animate(
       CurvedAnimation(parent: _animationController, curve: Curves.easeInOut),
+    );
+    // Load rating when widget initializes
+    _loadRating();
+  }
+
+  // Add this method to load rating
+  Future<void> _loadRating() async {
+    if (!mounted) return;
+    
+    setState(() {
+      _isLoadingRating = true;
+    });
+
+    try {
+      final productModel = Provider.of<ProductModel>(context, listen: false);
+      final stats = await ReviewService.getProductRatingStats(productModel.id);
+      
+      if (mounted) {
+        setState(() {
+          _rating = stats['averageRating']?.toDouble() ?? 0.0;
+          _totalReviews = stats['totalReviews'] ?? 0;
+          _isLoadingRating = false;
+        });
+      }
+    } catch (error) {
+      if (mounted) {
+        setState(() {
+          _isLoadingRating = false;
+        });
+      }
+    }
+  }
+
+  // Add this method to build star rating
+  Widget _buildStarRating() {
+    if (_isLoadingRating) {
+      return SizedBox(
+        height: 14,
+        child: Row(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            SizedBox(
+              width: 10,
+              height: 10,
+              child: CircularProgressIndicator(
+                strokeWidth: 1.5,
+                valueColor: AlwaysStoppedAnimation<Color>(Colors.grey),
+              ),
+            ),
+          ],
+        ),
+      );
+    }
+
+    if (_rating == 0.0) {
+      return SizedBox(height: 14); // Empty space if no rating
+    }
+
+    final screenWidth = MediaQuery.of(context).size.width;
+    final isMobile = screenWidth <= 800;
+    final starSize = isMobile ? 10.0 : 12.0;
+
+    return Row(
+      mainAxisSize: MainAxisSize.min,
+      children: [
+        // Star display
+        Row(
+          mainAxisSize: MainAxisSize.min,
+          children: List.generate(5, (index) {
+            if (index < _rating.floor()) {
+              return Icon(
+                Icons.star,
+                size: starSize,
+                color: Colors.amber,
+              );
+            } else if (index < _rating && _rating % 1 != 0) {
+              return Icon(
+                Icons.star_half,
+                size: starSize,
+                color: Colors.amber,
+              );
+            } else {
+              return Icon(
+                Icons.star_border,
+                size: starSize,
+                color: Colors.grey,
+              );
+            }
+          }),
+        ),
+        if (_totalReviews > 0) ...[
+          SizedBox(width: 2),
+          Text(
+            '($_totalReviews)',
+            style: TextStyle(
+              fontSize: starSize * 0.8,
+              color: Colors.grey[600],
+            ),
+          ),
+        ],
+      ],
     );
   }
 
@@ -207,7 +315,7 @@ class _OnSaleWidgetState extends State<OnSaleWidget> with SingleTickerProviderSt
                                 Text(
                                   productModel.title,
                                   style: TextStyle(
-                                    fontSize: isMobile ? 13 : (isWeb ? 16 : 14),
+                                    fontSize: isMobile ? 14 : 16,
                                     fontWeight: FontWeight.w600,
                                     color: color,
                                     height: 1.2,
@@ -215,7 +323,9 @@ class _OnSaleWidgetState extends State<OnSaleWidget> with SingleTickerProviderSt
                                   maxLines: 2,
                                   overflow: TextOverflow.ellipsis,
                                 ),
-                                SizedBox(height: isMobile ? 6 : 8),
+                                SizedBox(height: 4),
+                                _buildStarRating(),
+                                SizedBox(height: 8),
                                 // Action buttons
                                 Row(
                                   children: [

@@ -4,20 +4,25 @@ import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_iconly/flutter_iconly.dart';
+import 'package:flutter_rating_bar/flutter_rating_bar.dart';
 import 'package:grocery_app/widgets/heart_btn.dart';
 import 'package:provider/provider.dart';
 import 'dart:convert';
 import 'package:readmore/readmore.dart';
 
 import '../consts/firebase_consts.dart';
+import '../models/review_model.dart';
 import '../providers/cart_provider.dart';
 import '../providers/products_provider.dart';
 import '../providers/viewed_prod_provider.dart';
 import '../providers/wishlist_provider.dart';
 import '../services/global_methods.dart';
+import '../services/review_service.dart';
 import '../services/utils.dart';
 import '../widgets/text_widget.dart';
 import '../widgets/price_widget.dart';
+import '../widgets/add_review_dialog.dart';
+import '../widgets/review_widget.dart';
 
 class ProductDetails extends StatefulWidget {
   static const routeName = '/ProductDetails';
@@ -30,12 +35,53 @@ class ProductDetails extends StatefulWidget {
 
 class _ProductDetailsState extends State<ProductDetails> {
   final _quantityTextController = TextEditingController(text: '1');
+  List<ReviewModel> _reviews = [];
+  Map<String, dynamic> _ratingStats = {'averageRating': 0.0, 'totalReviews': 0};
+  bool _isLoadingReviews = false;
+  ReviewModel? _userReview;
 
   @override
   void dispose() {
     // Clean up the controller when the widget is disposed.
     _quantityTextController.dispose();
     super.dispose();
+  }
+
+  @override
+  void didChangeDependencies() {
+    super.didChangeDependencies();
+    final productId = ModalRoute.of(context)!.settings.arguments as String;
+    _loadReviews(productId);
+  }
+
+  Future<void> _loadReviews(String productId) async {
+    setState(() {
+      _isLoadingReviews = true;
+    });
+
+    try {
+      print('Loading reviews for product: $productId'); // Debug print
+      
+      final reviews = await ReviewService.getProductReviews(productId);
+      final stats = await ReviewService.getProductRatingStats(productId);
+      final userReview = await ReviewService.getUserReview(productId);
+
+      print('Loaded ${reviews.length} reviews'); // Debug print
+      print('Rating stats: $stats'); // Debug print
+      print('User review: ${userReview?.reviewText ?? 'None'}'); // Debug print
+
+      setState(() {
+        _reviews = reviews;
+        _ratingStats = stats;
+        _userReview = userReview;
+        _isLoadingReviews = false;
+      });
+    } catch (error) {
+      print('Error loading reviews: $error');
+      setState(() {
+        _isLoadingReviews = false;
+      });
+    }
   }
 
   @override
@@ -126,6 +172,9 @@ class _ProductDetailsState extends State<ProductDetails> {
                       child: Column(
                         crossAxisAlignment: CrossAxisAlignment.start,
                         children: [
+                          // Rating Section
+                          _buildRatingSection(color, getCurrProduct?.title ?? ''),
+                          
                           Padding(
                             padding: const EdgeInsets.symmetric(horizontal: 30),
                             child: Row(
@@ -260,6 +309,10 @@ class _ProductDetailsState extends State<ProductDetails> {
                               ],
                             ),
                           ),
+                          
+                          // Reviews Section
+                          _buildReviewsSection(color, getCurrProduct?.title ?? ''),
+                          
                           const SizedBox(height: 30),
                         ],
                       ),
@@ -348,6 +401,137 @@ class _ProductDetailsState extends State<ProductDetails> {
         ]),
       ),
     );
+  }
+
+  Widget _buildRatingSection(Color color, String productName) {
+    return Padding(
+      padding: const EdgeInsets.symmetric(horizontal: 30, vertical: 10),
+      child: Row(
+        mainAxisAlignment: MainAxisAlignment.spaceBetween,
+        children: [
+          Expanded(
+            child: Row(
+              children: [
+                RatingBarIndicator(
+                  rating: _ratingStats['averageRating']?.toDouble() ?? 0.0,
+                  itemBuilder: (context, index) => const Icon(
+                    Icons.star,
+                    color: Colors.amber,
+                  ),
+                  itemCount: 5,
+                  itemSize: 20.0,
+                  direction: Axis.horizontal,
+                ),
+                const SizedBox(width: 8),
+                TextWidget(
+                  text: '${_ratingStats['averageRating']?.toStringAsFixed(1) ?? '0.0'} (${_ratingStats['totalReviews']} reviews)',
+                  color: color,
+                  textSize: 14,
+                ),
+              ],
+            ),
+          ),
+          ElevatedButton(
+            onPressed: () {
+              final User? user = authInstance.currentUser;
+              if (user == null) {
+                GlobalMethods.errorDialog(
+                    subtitle: 'Please login to write a review',
+                    context: context);
+                return;
+              }
+              _showAddReviewDialog(productName);
+            },
+            style: ElevatedButton.styleFrom(
+              backgroundColor: Colors.blue,
+              foregroundColor: Colors.white,
+              shape: RoundedRectangleBorder(
+                borderRadius: BorderRadius.circular(8),
+              ),
+            ),
+            child: Text(_userReview != null ? 'Edit Review' : 'Write Review'),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildReviewsSection(Color color, String productName) {
+    return Padding(
+      padding: const EdgeInsets.symmetric(horizontal: 30, vertical: 20),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          TextWidget(
+            text: 'Customer Reviews',
+            color: color,
+            textSize: 20,
+            isTitle: true,
+          ),
+          const SizedBox(height: 16),
+          if (_isLoadingReviews)
+            const Center(child: CircularProgressIndicator())
+          else if (_reviews.isEmpty)
+            Center(
+              child: Column(
+                children: [
+                  Icon(Icons.rate_review_outlined, size: 60, color: Colors.grey.shade400),
+                  const SizedBox(height: 16),
+                  TextWidget(
+                    text: 'No reviews yet. Be the first to review this product!',
+                    color: Colors.grey,
+                    textSize: 16,
+                  ),
+                ],
+              ),
+            )
+          else
+            ListView.builder(
+              shrinkWrap: true,
+              physics: const NeverScrollableScrollPhysics(),
+              itemCount: _reviews.length,
+              itemBuilder: (context, index) {
+                final review = _reviews[index];
+                final isCurrentUser = authInstance.currentUser?.uid == review.userId;
+                
+                return ReviewWidget(
+                  review: review,
+                  isCurrentUser: isCurrentUser,
+                  onDelete: isCurrentUser ? () => _deleteReview(review.id) : null,
+                );
+              },
+            ),
+        ],
+      ),
+    );
+  }
+
+  void _showAddReviewDialog(String productName) {
+    final productId = ModalRoute.of(context)!.settings.arguments as String;
+    
+    showDialog(
+      context: context,
+      builder: (context) => AddReviewDialog(
+        productId: productId,
+        productName: productName,
+        onReviewAdded: () => _loadReviews(productId),
+        existingReview: _userReview,
+      ),
+    );
+  }
+
+  void _deleteReview(String reviewId) async {
+    final success = await ReviewService.deleteReview(reviewId);
+    if (success) {
+      final productId = ModalRoute.of(context)!.settings.arguments as String;
+      _loadReviews(productId);
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text('Review deleted successfully'),
+          backgroundColor: Colors.green,
+        ),
+      );
+    }
   }
 
   Widget quantityControl(

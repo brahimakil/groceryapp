@@ -15,6 +15,8 @@ class ProductModel with ChangeNotifier {
   final String? calories; // Optional field
   final String? nutrients; // Optional field
   final Timestamp createdAt;
+  final double averageRating;
+  final int totalReviews;
 
   ProductModel({
     required this.id,
@@ -30,6 +32,8 @@ class ProductModel with ChangeNotifier {
     this.calories, // Optional
     this.nutrients, // Optional
     required this.createdAt,
+    this.averageRating = 0.0,
+    this.totalReviews = 0,
   });
 
   // Factory constructor to create a ProductModel from a Firestore document
@@ -59,6 +63,8 @@ class ProductModel with ChangeNotifier {
       calories: _parseString(data['calories']), 
       nutrients: _parseString(data['nutrients']), 
       createdAt: data['createdAt'] ?? Timestamp.now(),
+      averageRating: _parseDouble(data['averageRating'], defaultValue: 0.0),
+      totalReviews: data['totalReviews'] ?? 0,
     );
   }
 
@@ -80,6 +86,8 @@ class ProductModel with ChangeNotifier {
       createdAt: json['createdAt'] != null 
           ? Timestamp.fromMillisecondsSinceEpoch(json['createdAt'])
           : Timestamp.now(),
+      averageRating: _parseDouble(json['averageRating'], defaultValue: 0.0),
+      totalReviews: json['totalReviews'] ?? 0,
     );
   }
 
@@ -99,6 +107,8 @@ class ProductModel with ChangeNotifier {
       'calories': calories,
       'nutrients': nutrients,
       'createdAt': createdAt.millisecondsSinceEpoch,
+      'averageRating': averageRating,
+      'totalReviews': totalReviews,
     };
   }
 
